@@ -1381,11 +1381,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Support
 
-- **Documentation:** [https://docs.synapse.com](https://docs.synapse.com)
-- **GitHub Issues:** [https://github.com/CryptoFamilyNFT/synapse/issues](https://github.com/CryptoFamilyNFT/synapse/issues)
-- **Discord:** [https://discord.gg/synapse](https://discord.gg/synapse)
-- **Email:** support@synapse.com
-
+- **Documentation:** [https://synapseoobe.ai.com](https://synapseoobe.ai.com)
+- **GitHub Issues:** [https://github.com/OOBE-PROTOCOL/synapse/issues](https://github.com/OOBE-PROTOCOL/synapse/issues)
+- **Email:** support@oobeprotocol.ai
+- **Tg**: t.me/@ethercode_0xkpt
 ---
 
 **Synapse Client SDK** - Enterprise-grade Solana development toolkit
