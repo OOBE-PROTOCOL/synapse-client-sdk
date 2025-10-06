@@ -1,5 +1,5 @@
 {
-  "name": "@synapse/client-sdk",
+  "name": "@oobe-protocol-labs/synapse-client-sdk",
   "version": "1.0.0-beta",
   "description": "Advanced Synapse Client SDK - Next-gen client with AI, WebSocket, Smart Caching & Advanced Features | Powered by oobe-protocol.ai (OOBE)",
   "main": "dist/cjs/index.js",
@@ -151,10 +151,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/OOBE-PROTOCOL/synapse-client-sdk",
-    "directory": "packages/client-sdk-js"
+    "url": "git+https://github.com/OOBE-PROTOCOL/synapse-client-sdk.git"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
