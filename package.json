@@ -63,7 +63,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && node scripts/fix-esm-imports.mjs && pnpm run -s build:docs",
-    "build:docs": "sh -c 'if command -v typedoc >/dev/null 2>&1; then typedoc --out dist/docs src/index.ts; else :; fi'",
+    "build:docs": "typedoc --out dist/docs src/index.ts && cp -r dist/docs docs && touch docs/.nojekyll",
     "docs": "typedoc --out docs src/index.ts",
     "dev": "tsc --watch",
     "lint": "eslint src/**/*.ts --fix",
