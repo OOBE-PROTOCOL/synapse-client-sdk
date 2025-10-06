@@ -83,7 +83,7 @@ interface CircuitBreakerConfig {
 ### Implementation
 
 ```typescript
-import { CircuitBreaker } from '@synapse/client-sdk/advanced';
+import { CircuitBreaker } from '@oobe-protocol-labs/synapse-client-sdk/advanced';
 
 const breaker = new CircuitBreaker({
   failureThreshold: 5,         // Open after 5 failures
@@ -236,7 +236,7 @@ interface SmartCacheConfig {
 ### Implementation
 
 ```typescript
-import { SmartCaching } from '@synapse/client-sdk/advanced';
+import { SmartCaching } from '@oobe-protocol-labs/synapse-client-sdk/advanced';
 
 const cache = new SmartCaching({
   maxSize: 10000,
@@ -479,7 +479,7 @@ interface LoadBalancerConfig {
 ### Implementation
 
 ```typescript
-import { LoadBalancer } from '@synapse/client-sdk/advanced';
+import { LoadBalancer } from '@oobe-protocol-labs/synapse-client-sdk/advanced';
 
 const balancer = new LoadBalancer({
   endpoints: [
@@ -607,7 +607,7 @@ import {
   SmartCaching,
   CircuitBreaker,
   LoadBalancer,
-} from '@synapse/client-sdk/advanced';
+} from '@oobe-protocol-labs/synapse-client-sdk/advanced';
 
 // Initialize components
 const cache = new SmartCaching({

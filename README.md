@@ -42,19 +42,19 @@ TypeScript SDK for Solana blockchain with advanced features including AI integra
 ## Installation
 
 ```bash
-npm install @synapse/client-sdk
+npm install @oobe-protocol-labs/synapse-client-sdk@beta
+
 # or
-pnpm add @synapse/client-sdk
+pnpm add @oobe-protocol-labs/synapse-client-sdk@beta
 # or
-yarn add @synapse/client-sdk
-```
+yarn add @oobe-protocol-labs/synapse-client-sdk@beta```
 
 ## Quick Start
 
 ### Basic Client Initialization
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
 
 const client = new SynapseClient({
   endpoint: 'https://your-synapse-gateway.com',
@@ -197,7 +197,7 @@ Enterprise-grade resilience and performance optimization.
 #### Quick Example
 
 ```typescript
-import { SmartCaching, CircuitBreaker, LoadBalancer } from '@synapse/client-sdk/advanced';
+import { SmartCaching, CircuitBreaker, LoadBalancer } from '@oobe-protocol-labs/synapse-client-sdk/advanced';
 
 // Multi-layer caching
 const cache = new SmartCaching({
@@ -263,7 +263,7 @@ Real-time Solana blockchain data streaming with intelligent reconnection.
 #### Quick Example
 
 ```typescript
-import { WebSocketClient } from '@synapse/client-sdk/websocket';
+import { WebSocketClient } from '@oobe-protocol-labs/synapse-client-sdk/websocket';
 
 const wsClient = new WebSocketClient({
   endpoint: 'wss://your-synapse-gateway.com',
@@ -335,7 +335,7 @@ Production-ready DeFi integrations for Solana.
 #### Quick Example
 
 ```typescript
-import { JupiterIntegration, JitoIntegration, TokenDataIntegration } from '@synapse/client-sdk/defi';
+import { JupiterIntegration, JitoIntegration, TokenDataIntegration } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 // Jupiter swap
 const jupiter = new JupiterIntegration(client);
@@ -391,7 +391,7 @@ Complete NFT toolkit for Solana with AI-powered features.
 #### Quick Example
 
 ```typescript
-import { NFTEngine, CollectionAnalytics, AIRarityCalculator } from '@synapse/client-sdk/nft';
+import { NFTEngine, CollectionAnalytics, AIRarityCalculator } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 // Basic NFT operations
 const nft = new NFTEngine(client);
@@ -436,7 +436,7 @@ OOBE Protocol implementation with Zero-Combine and PDA management.
 #### Quick Example
 
 ```typescript
-import { PDAManager, ZeroCombineFetcher, MerkleOperation } from '@synapse/client-sdk/ai';
+import { PDAManager, ZeroCombineFetcher, MerkleOperation } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 // PDA derivation
 const pdaManager = new PDAManager(client, walletAddress);
@@ -483,7 +483,7 @@ Real-time metrics collection with AI-powered predictions.
 #### Quick Example
 
 ```typescript
-import { AnalyticsEngine } from '@synapse/client-sdk/analytics';
+import { AnalyticsEngine } from '@oobe-protocol-labs/synapse-client-sdk/analytics';
 
 const analytics = new AnalyticsEngine({
   enablePredictions: true,
@@ -562,7 +562,7 @@ Type-safe wrapper for 70+ Solana RPC methods.
 #### Quick Example
 
 ```typescript
-import { SolanaRpcMethods } from '@synapse/client-sdk/methods';
+import { SolanaRpcMethods } from '@oobe-protocol-labs/synapse-client-sdk/methods';
 
 const rpc = new SolanaRpcMethods(client);
 
@@ -619,14 +619,14 @@ Utility functions and constants for common operations.
 
 ```typescript
 // Constants
-import { SynapseConstants } from '@synapse/client-sdk/utils';
+import { SynapseConstants } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 console.log('Base URL:', SynapseConstants.BASE_URL);
 console.log('WebSocket URL:', SynapseConstants.WEBSOCKET_URL);
 console.log('Default timeout:', SynapseConstants.DEFAULT_TIMEOUT);
 
 // Helpers
-import { SynapseUtils } from '@synapse/client-sdk/utils';
+import { SynapseUtils } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 // Format lamports to SOL
 const sol = SynapseUtils.lamportsToSol(1_000_000_000);
@@ -840,7 +840,7 @@ function getBalance(address: string) {
 ### 2. Error Handling
 
 ```typescript
-import { SynapseError, NetworkError, TimeoutError } from '@synapse/client-sdk';
+import { SynapseError, NetworkError, TimeoutError } from '@oobe-protocol-labs/synapse-client-sdk';
 
 async function robustRpcCall<T>(
   method: string,
@@ -899,7 +899,7 @@ const balance3 = await client.call('getBalance', ['address3']);
 ### 4. Caching Strategy
 
 ```typescript
-import { SmartCaching } from '@synapse/client-sdk/advanced';
+import { SmartCaching } from '@oobe-protocol-labs/synapse-client-sdk/advanced';
 
 const cache = new SmartCaching({
   maxSize: 10000,
@@ -939,7 +939,7 @@ const TTL_STRATEGIES = {
 ### 5. Circuit Breaker Integration
 
 ```typescript
-import { CircuitBreaker } from '@synapse/client-sdk/advanced';
+import { CircuitBreaker } from '@oobe-protocol-labs/synapse-client-sdk/advanced';
 
 const breaker = new CircuitBreaker({
   failureThreshold: 5,
@@ -1128,7 +1128,7 @@ const balance = await client.call('getBalance', ['address']);
 const accountInfo = await client.call('getAccountInfo', ['address', { encoding: 'jsonParsed' }]);
 
 // Or use SolanaRpcMethods wrapper
-import { SolanaRpcMethods } from '@synapse/client-sdk/methods';
+import { SolanaRpcMethods } from '@oobe-protocol-labs/synapse-client-sdk/methods';
 const rpc = new SolanaRpcMethods(client);
 const balance = await rpc.getBalance('address');
 const accountInfo = await rpc.getAccountInfo('address', { encoding: 'jsonParsed' });
@@ -1145,7 +1145,7 @@ catch (error) {
 }
 
 // v2.x
-import { SynapseError, ValidationError, NetworkError } from '@synapse/client-sdk';
+import { SynapseError, ValidationError, NetworkError } from '@oobe-protocol-labs/synapse-client-sdk';
 
 catch (error) {
   if (error instanceof ValidationError) {
@@ -1381,11 +1381,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Support
 
-- **Documentation:** [https://docs.synapse.com](https://docs.synapse.com)
-- **GitHub Issues:** [https://github.com/CryptoFamilyNFT/synapse/issues](https://github.com/CryptoFamilyNFT/synapse/issues)
-- **Discord:** [https://discord.gg/synapse](https://discord.gg/synapse)
-- **Email:** support@synapse.com
-
+- **GitHub Issues:** [https://github.com/OOBE-PROTOCOL/synapse/issues](https://github.com/OOBE-PROTOCOL/synapse/issues)
+- **Email:** support@oobeprotocol.ai
+- **Tg**: t.me/@ethercode_0xkpt
 ---
 
 **Synapse Client SDK** - Enterprise-grade Solana development toolkit
