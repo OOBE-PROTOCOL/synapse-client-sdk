@@ -5,6 +5,10 @@
  * with automatic reconnect, ping/pong keep-alive, and subscription
  * restore after reconnection.
  *
+ * **Cross-platform**: Uses the native `WebSocket` global when available
+ * (browsers, Deno, Cloudflare Workers, Next.js client components) and
+ * falls back to the `ws` npm package on Node.js / Bun.
+ *
  * @module websocket/client
  * @since 1.0.0
  *
@@ -17,7 +21,7 @@
  * ws.onAccountChange(pubkey, (n) => console.log('Balance:', n.result.value.lamports));
  * ```
  */
-import WebSocket from 'ws';
+import { isBrowser } from '../utils/env';
 import type { Pubkey, Signature } from '../core/types';
 import type {
   WsConfig, SubscriptionId,
@@ -27,6 +31,50 @@ import type {
   LogsNotification, SignatureNotification,
   SlotNotification, RootNotification
 } from './types';
+
+// ── Cross-platform WebSocket adapter ───────────────────────────
+
+/**
+ * Minimal WebSocket interface shared between the native browser
+ * `WebSocket` and the Node.js `ws` package.
+ * @internal
+ */
+interface WsLike {
+  readonly readyState: number;
+  send(data: string): void;
+  close(): void;
+  ping?(): void;
+  on?(event: string, handler: (...args: any[]) => void): void;
+  addEventListener?(event: string, handler: (...args: any[]) => void): void;
+  removeEventListener?(event: string, handler: (...args: any[]) => void): void;
+}
+
+/** @internal readyState constants (same for browser and `ws`). */
+const WS_OPEN = 1;
+
+/**
+ * Resolve the WebSocket constructor for the current runtime.
+ *
+ * - Browser / Edge / Deno: `globalThis.WebSocket` (native).
+ * - Node.js / Bun: dynamic `require('ws')`.
+ *
+ * @internal
+ * @throws {Error} If no WebSocket implementation is available.
+ */
+const getWsConstructor = (): new (url: string) => WsLike => {
+  // Browser-native WebSocket (or Node >= 22 with experimental flag)
+  if (typeof globalThis !== 'undefined' && (globalThis as any).WebSocket) {
+    return (globalThis as any).WebSocket;
+  }
+  // Node.js fallback — dynamic require to avoid bundler warnings
+  try {
+    return require('ws');
+  } catch {
+    throw new Error(
+      'No WebSocket implementation found. Install the "ws" package for Node.js: pnpm add ws'
+    );
+  }
+};
 
 /** @internal Tracked subscription entry. */
 type SubEntry = {
@@ -42,16 +90,19 @@ type SubEntry = {
  * Supports `accountSubscribe`, `programSubscribe`, `logsSubscribe`,
  * `signatureSubscribe`, `slotSubscribe`, and `rootSubscribe`.
  *
+ * Works in **both browser and Node.js** environments.
+ *
  * @since 1.0.0
  */
 export class WsClient {
-  private ws: WebSocket | null = null;
+  private ws: WsLike | null = null;
   private subs = new Map<number, SubEntry>();
   private nextLocalId = 1;
   private reconnecting = false;
   private reconnectAttempts = 0;
   private pingTimer?: ReturnType<typeof setInterval>;
   private readonly cfg: Required<WsConfig>;
+  private readonly _isBrowser: boolean;
 
   constructor(config: WsConfig) {
     this.cfg = {
@@ -61,6 +112,7 @@ export class WsClient {
       pingIntervalMs: 30_000,
       ...config
     };
+    this._isBrowser = isBrowser();
   }
 
   // ── Public subscriptions ──────────────────────────────────────
@@ -148,7 +200,7 @@ export class WsClient {
   unsubscribe(localId: number): void {
     const entry = this.subs.get(localId);
     if (!entry) return;
-    if (entry.id != null && this.ws?.readyState === WebSocket.OPEN) {
+    if (entry.id != null && this.ws?.readyState === WS_OPEN) {
       const unsubMethod = entry.method.replace('Subscribe', 'Unsubscribe');
       this.sendJson({ jsonrpc: '2.0', id: localId, method: unsubMethod, params: [entry.id] });
     }
@@ -179,36 +231,67 @@ export class WsClient {
   }
 
   private async ensureConnected(): Promise<void> {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
+    if (this.ws?.readyState === WS_OPEN) return;
     await this.connect();
   }
 
   private connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(this.cfg.endpoint);
+      const WsCtor = getWsConstructor();
+      const ws = new WsCtor(this.cfg.endpoint) as WsLike;
       this.ws = ws;
 
-      ws.on('open', () => {
-        this.reconnectAttempts = 0;
-        this.startPing();
-        resolve();
-      });
+      // ── Node.js `ws` — uses EventEmitter-style `.on()` ──────
+      if (typeof ws.on === 'function') {
+        ws.on('open', () => {
+          this.reconnectAttempts = 0;
+          this.startPing();
+          resolve();
+        });
 
-      ws.on('message', (raw: WebSocket.Data) => {
-        try {
-          const msg = JSON.parse(raw.toString());
-          this.handleMessage(msg);
-        } catch { /* ignore malformed */ }
-      });
+        ws.on('message', (raw: any) => {
+          try {
+            const msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString());
+            this.handleMessage(msg);
+          } catch { /* ignore malformed */ }
+        });
 
-      ws.on('close', () => {
-        this.stopPing();
-        if (this.cfg.autoReconnect) this.scheduleReconnect();
-      });
+        ws.on('close', () => {
+          this.stopPing();
+          if (this.cfg.autoReconnect) this.scheduleReconnect();
+        });
 
-      ws.on('error', (err: Error) => {
-        if (this.ws === ws && ws.readyState !== WebSocket.OPEN) reject(err);
-      });
+        ws.on('error', (err: Error) => {
+          if (this.ws === ws && ws.readyState !== WS_OPEN) reject(err);
+        });
+      }
+      // ── Browser native WebSocket — uses `.addEventListener()` ─
+      else if (typeof ws.addEventListener === 'function') {
+        ws.addEventListener('open', () => {
+          this.reconnectAttempts = 0;
+          this.startPing();
+          resolve();
+        });
+
+        ws.addEventListener('message', (evt: any) => {
+          try {
+            const data = typeof evt === 'string' ? evt : (evt.data ?? evt);
+            const msg = JSON.parse(typeof data === 'string' ? data : String(data));
+            this.handleMessage(msg);
+          } catch { /* ignore malformed */ }
+        });
+
+        ws.addEventListener('close', () => {
+          this.stopPing();
+          if (this.cfg.autoReconnect) this.scheduleReconnect();
+        });
+
+        ws.addEventListener('error', () => {
+          if (this.ws === ws && ws.readyState !== WS_OPEN) {
+            reject(new Error('WebSocket connection failed'));
+          }
+        });
+      }
     });
   }
 
@@ -238,7 +321,7 @@ export class WsClient {
   }
 
   private sendJson(data: unknown): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.ws?.readyState === WS_OPEN) {
       this.ws.send(JSON.stringify(data));
     }
   }
@@ -263,9 +346,15 @@ export class WsClient {
 
   private startPing(): void {
     this.stopPing();
-    this.pingTimer = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) this.ws.ping();
-    }, this.cfg.pingIntervalMs);
+    // Browser WebSocket does not expose .ping() — the browser handles
+    // TCP keep-alive automatically. Only Node.js `ws` has .ping().
+    if (typeof this.ws?.ping === 'function') {
+      this.pingTimer = setInterval(() => {
+        if (this.ws?.readyState === WS_OPEN && typeof this.ws.ping === 'function') {
+          this.ws.ping();
+        }
+      }, this.cfg.pingIntervalMs);
+    }
   }
 
   private stopPing(): void {

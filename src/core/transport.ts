@@ -19,6 +19,7 @@
 
 import type { RpcRequest, RpcResponse, Commitment } from '@/core/types';
 import { NetworkError, SynapseError, TimeoutError, UpstreamError } from '@/core/errors';
+import { SDK_USER_AGENT, isBrowser } from '@/utils/env';
 
 // ── Transport config ───────────────────────────────────────────
 
@@ -82,6 +83,8 @@ export class HttpTransport {
     this.headers = {
       'Content-Type': 'application/json',
       ...(cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {}),
+      // User-Agent is only settable on server-side fetch; browsers silently ignore it.
+      ...(!isBrowser() ? { 'User-Agent': SDK_USER_AGENT } : {}),
       ...(cfg.headers ?? {})
     };
   }

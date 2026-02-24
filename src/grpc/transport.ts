@@ -3,9 +3,15 @@
  * @description GrpcTransport — thin adapter over `@grpc/grpc-js`.
  * Uses dynamic `require` so the module stays optional. Provides proto
  * loading, service stub creation, and promise-based unary calls.
+ *
+ * **Node.js only** — gRPC relies on native C++ bindings and HTTP/2 framing
+ * that are not available in browser environments. Instantiating this class
+ * in a browser will throw a descriptive error.
+ *
  * @since 1.0.0
  */
 import type { GrpcTransportConfig, GrpcCallOptions } from './types';
+import { isBrowser } from '../utils/env';
 
 // Dynamic types — resolved at runtime only
 type GrpcModule = any;
@@ -40,9 +46,18 @@ export class GrpcTransport {
    * Create a new gRPC transport instance.
    *
    * @param cfg - Transport configuration options.
+   * @throws {Error} If instantiated in a browser environment.
    * @since 1.0.0
    */
-  constructor(private readonly cfg: GrpcTransportConfig) {}
+  constructor(private readonly cfg: GrpcTransportConfig) {
+    if (isBrowser()) {
+      throw new Error(
+        'GrpcTransport is not available in browser environments. ' +
+        'gRPC requires native Node.js bindings (@grpc/grpc-js). ' +
+        'Use the HTTP RPC or WebSocket client for browser/Next.js client components.'
+      );
+    }
+  }
 
   /**
    * Lazy-load gRPC dependencies (`@grpc/grpc-js` and `@grpc/proto-loader`).

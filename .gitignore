@@ -5,3 +5,4 @@ dist/esm/*
 *.log
 coverage/
 .DS_Store
+.history/

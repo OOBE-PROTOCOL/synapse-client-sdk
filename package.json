@@ -8,44 +8,49 @@
   "types": "dist/esm/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/esm/index.d.ts",
       "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "types": "./dist/esm/index.d.ts"
+      "require": "./dist/cjs/index.js"
     },
     "./core": {
+      "types": "./dist/esm/core/client.d.ts",
       "import": "./dist/esm/core/client.js",
-      "require": "./dist/cjs/core/client.js",
-      "types": "./dist/esm/core/client.d.ts"
+      "require": "./dist/cjs/core/client.js"
     },
     "./core/types": {
+      "types": "./dist/esm/core/types.d.ts",
       "import": "./dist/esm/core/types.js",
-      "require": "./dist/cjs/core/types.js",
-      "types": "./dist/esm/core/types.d.ts"
+      "require": "./dist/cjs/core/types.js"
     },
     "./rpc": {
+      "types": "./dist/esm/rpc/index.d.ts",
       "import": "./dist/esm/rpc/index.js",
-      "require": "./dist/cjs/rpc/index.js",
-      "types": "./dist/esm/rpc/index.d.ts"
+      "require": "./dist/cjs/rpc/index.js"
     },
     "./grpc": {
+      "types": "./dist/esm/grpc/index.d.ts",
       "import": "./dist/esm/grpc/index.js",
-      "require": "./dist/cjs/grpc/index.js",
-      "types": "./dist/esm/grpc/index.d.ts"
+      "require": "./dist/cjs/grpc/index.js"
     },
     "./das": {
+      "types": "./dist/esm/das/index.d.ts",
       "import": "./dist/esm/das/index.js",
-      "require": "./dist/cjs/das/index.js",
-      "types": "./dist/esm/das/index.d.ts"
+      "require": "./dist/cjs/das/index.js"
     },
     "./websocket": {
+      "types": "./dist/esm/websocket/index.d.ts",
       "import": "./dist/esm/websocket/index.js",
-      "require": "./dist/cjs/websocket/index.js",
-      "types": "./dist/esm/websocket/index.d.ts"
+      "require": "./dist/cjs/websocket/index.js"
     },
     "./utils": {
+      "types": "./dist/esm/utils/index.d.ts",
       "import": "./dist/esm/utils/index.js",
-      "require": "./dist/cjs/utils/index.js",
-      "types": "./dist/esm/utils/index.d.ts"
+      "require": "./dist/cjs/utils/index.js"
+    },
+    "./ai": {
+      "types": "./dist/esm/ai/index.d.ts",
+      "import": "./dist/esm/ai/index.js",
+      "require": "./dist/cjs/ai/index.js"
     }
   },
   "files": [
@@ -53,6 +58,11 @@
     "README.md",
     "CHANGELOG.md"
   ],
+  "browser": {
+    "ws": false,
+    "@grpc/grpc-js": false,
+    "@grpc/proto-loader": false
+  },
   "sideEffects": false,
   "typesVersions": {
     "*": {

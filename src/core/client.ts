@@ -20,6 +20,7 @@
  */
 
 import { HttpTransport, type TransportConfig, type CallOptions } from './transport';
+import { isBrowser } from '../utils/env';
 
 // Forward-declare lazy modules (resolved on first access)
 import type { SolanaRpc } from '@/rpc/solana-rpc';
@@ -55,7 +56,7 @@ export class SynapseClient {
   constructor(config: SynapseClientConfig) {
     this.cfg = config;
     this.transport = new HttpTransport(config);
-    if (config.debug) console.log('🚀 Synapse SDK initialized:', config.endpoint);
+    if (config.debug) console.log('[Synapse SDK] initialized:', config.endpoint, `(${isBrowser() ? 'browser' : 'server'})`);
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -163,9 +164,20 @@ export class SynapseClient {
   /**
    * gRPC transport for Yellowstone/Geyser streaming.
    * Lazy-loaded on first access.
+   *
+   * **Node.js only** — throws a descriptive error in browser environments.
+   * Use RPC or WebSocket for browser/Next.js client components.
+   *
    * @since 1.0.0
    */
   get grpc(): GrpcTransport {
+    if (isBrowser()) {
+      throw new Error(
+        'GrpcTransport is not available in browser environments. ' +
+        'gRPC requires native Node.js bindings (@grpc/grpc-js). ' +
+        'Use client.rpc or client.ws for browser/Next.js client components.'
+      );
+    }
     if (!this._grpc) {
       const { GrpcTransport: Ctor } = require('../grpc/transport') as typeof import('@/grpc/transport');
       this._grpc = new Ctor({ endpoint: this.cfg.grpcEndpoint ?? this.cfg.endpoint });
