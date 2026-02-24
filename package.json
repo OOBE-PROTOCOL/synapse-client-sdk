@@ -1,7 +1,8 @@
 {
   "name": "@oobe-protocol-labs/synapse-client-sdk",
   "version": "1.0.1",
-  "description": "Advanced Synapse Client SDK - Next-gen client with AI, WebSocket, Smart Caching & Advanced Features | Powered by oobe-protocol.ai (OOBE)",
+  "description": "Synapse Client SDK - RPC Client for Solana with WebSocket, Smart Caching, Circuit Breaker & Load Balancing | Powered by oobeprotocol.ai (OOBE)",
+
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -111,7 +112,7 @@
     "advanced-features",
     "enterprise-ready"
   ],
-  "author": "Synapse Gateway | oobe-protocol Team",
+  "author": "Synapse Gateway | OOBE PROTOCOL LABS (https://oobeprotocol.ai)",
   "license": "MIT",
   "dependencies": {
     "@langchain/core": "^0.3.78",
