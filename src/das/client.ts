@@ -15,7 +15,7 @@ import * as m from './methods/index';
 /**
  * High-level client for the Digital Asset Standard (DAS) API.
  *
- * @description Provides typed methods for fetching, searching, and inspecting
+ * Provides typed methods for fetching, searching, and inspecting
  * digital assets (NFTs, cNFTs, and fungible tokens) via the Metaplex Read API.
  *
  * @example

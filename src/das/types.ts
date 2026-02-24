@@ -11,7 +11,8 @@ import type { Pubkey, Slot, Commitment } from '../core/types';
 
 /**
  * Common request options for DAS API calls.
- * @description Shared optional parameters passed to every DAS method.
+ *
+ * Shared optional parameters passed to every DAS method.
  * @since 1.0.0
  */
 export interface DasOpts {
@@ -22,7 +23,8 @@ export interface DasOpts {
 
 /**
  * A file reference attached to a digital asset's content.
- * @description Represents a single off-chain file (image, video, etc.) linked to an asset.
+ *
+ * Represents a single off-chain file (image, video, etc.) linked to an asset.
  * @since 1.0.0
  */
 export interface DasFile {
@@ -34,7 +36,8 @@ export interface DasFile {
 
 /**
  * On-chain and off-chain content metadata for a digital asset.
- * @description Contains the JSON schema URI, associated files, metadata attributes,
+ *
+ * Contains the JSON schema URI, associated files, metadata attributes,
  * and external links for an asset.
  * @since 1.0.0
  */
@@ -56,7 +59,8 @@ export interface DasContent {
 
 /**
  * Ownership details of a digital asset.
- * @description Tracks the current owner, delegation status, and ownership model.
+ *
+ * Tracks the current owner, delegation status, and ownership model.
  * @since 1.0.0
  */
 export interface DasOwnership {
@@ -69,7 +73,8 @@ export interface DasOwnership {
 
 /**
  * An authority associated with a digital asset.
- * @description Represents an on-chain authority address and its permission scopes.
+ *
+ * Represents an on-chain authority address and its permission scopes.
  * @since 1.0.0
  */
 export interface DasAuthority {
@@ -81,7 +86,8 @@ export interface DasAuthority {
 
 /**
  * Compression metadata for a compressed NFT (cNFT).
- * @description Contains Merkle tree hashes, tree address, sequence number,
+ *
+ * Contains Merkle tree hashes, tree address, sequence number,
  * and leaf index for state-compressed assets.
  * @since 1.0.0
  */
@@ -100,7 +106,8 @@ export interface DasCompression {
 
 /**
  * Grouping information for a digital asset (e.g. collection membership).
- * @description Links an asset to a group such as a verified collection.
+ *
+ * Links an asset to a group such as a verified collection.
  * @since 1.0.0
  */
 export interface DasGrouping {
@@ -112,7 +119,8 @@ export interface DasGrouping {
 
 /**
  * Royalty configuration for a digital asset.
- * @description Specifies the royalty model, target, basis points, and sale status.
+ *
+ * Specifies the royalty model, target, basis points, and sale status.
  * @since 1.0.0
  */
 export interface DasRoyalty {
@@ -126,7 +134,8 @@ export interface DasRoyalty {
 
 /**
  * A creator entry on a digital asset.
- * @description Represents a co-creator with their revenue share and verification status.
+ *
+ * Represents a co-creator with their revenue share and verification status.
  * @since 1.0.0
  */
 export interface DasCreator {
@@ -137,7 +146,8 @@ export interface DasCreator {
 
 /**
  * Supply information for a digital asset edition.
- * @description Tracks max supply, current supply, and edition nonce for print editions.
+ *
+ * Tracks max supply, current supply, and edition nonce for print editions.
  * @since 1.0.0
  */
 export interface DasSupply {
@@ -150,7 +160,8 @@ export interface DasSupply {
 
 /**
  * The full representation of a Metaplex Digital Asset.
- * @description Core response type returned by `getAsset` and search endpoints,
+ *
+ * Core response type returned by `getAsset` and search endpoints,
  * containing content, ownership, compression, grouping, royalty, and token info.
  * @since 1.0.0
  */
@@ -189,7 +200,8 @@ export interface DasAsset {
 
 /**
  * Merkle proof for a compressed digital asset.
- * @description Used to verify or modify a cNFT's state on the concurrent Merkle tree.
+ *
+ * Used to verify or modify a cNFT's state on the concurrent Merkle tree.
  * @since 1.0.0
  */
 export interface DasAssetProof {
@@ -204,7 +216,8 @@ export interface DasAssetProof {
 
 /**
  * Paginated result set returned by DAS list/search endpoints.
- * @description Wraps an array of items with total count, page size, and cursor
+ *
+ * Wraps an array of items with total count, page size, and cursor
  * for efficient pagination.
  * @typeParam T - The type of items in the page (defaults to {@link DasAsset}).
  * @since 1.0.0
@@ -233,7 +246,8 @@ export type DasSortDirection = 'asc' | 'desc';
 
 /**
  * Comprehensive search parameters for the DAS `searchAssets` endpoint.
- * @description Supports filtering by owner, creator, authority, collection grouping,
+ *
+ * Supports filtering by owner, creator, authority, collection grouping,
  * token type, compression status, and many other asset attributes.
  * @since 1.0.0
  */
