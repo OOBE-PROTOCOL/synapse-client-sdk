@@ -54,13 +54,13 @@ Real-time Solana blockchain data streaming with intelligent reconnection, subscr
 ## Installation
 
 ```bash
-npm install @synapse/client-sdk
+npm install @oobe-protocol-labs/synapse-client-sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { WebSocketClient } from '@synapse/client-sdk/websocket';
+import { WebSocketClient } from '@oobe-protocol-labs/synapse-client-sdk/websocket';
 
 const wsClient = new WebSocketClient({
   endpoint: 'wss://your-synapse-gateway.com',

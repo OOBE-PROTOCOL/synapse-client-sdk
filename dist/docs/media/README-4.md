@@ -64,8 +64,8 @@ Professional AI module with OOBE Protocol implementation for advanced Solana ope
 Program Derived Address management for on-chain Merkle data storage.
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
-import { PDAManager } from '@synapse/client-sdk/ai';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+import { PDAManager } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 const client = new SynapseClient({ 
   endpoint: process.env.SYNAPSE_ENDPOINT!,
@@ -102,7 +102,7 @@ const accounts = await pdaManager.getBatchPDAAccountInfo([
 Large dataset reconstruction from on-chain transaction chunks.
 
 ```typescript
-import { ZeroCombineFetcher } from '@synapse/client-sdk/ai';
+import { ZeroCombineFetcher } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 const fetcher = new ZeroCombineFetcher(
   client,
@@ -145,7 +145,7 @@ Complete Merkle tree operations: generation, proof creation, and verification.
 #### Basic Usage (Without Signing)
 
 ```typescript
-import { MerkleOperation } from '@synapse/client-sdk/ai';
+import { MerkleOperation } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 const merkle = new MerkleOperation(
   client,
@@ -187,7 +187,7 @@ console.log('Verification results:', results);
 
 ```typescript
 import { Connection, Keypair } from '@solana/web3.js';
-import { MerkleOperation } from '@synapse/client-sdk/ai';
+import { MerkleOperation } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 // Setup Connection and Keypair
 const connection = new Connection('https://api.mainnet-beta.solana.com');
@@ -279,12 +279,12 @@ OOBE (On-chain Off-chain Blockchain Encoding) Protocol is a data storage and ret
 ### Complete Example: AI Agent State Storage
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
 import { 
   PDAManager,
   ZeroCombineFetcher,
   MerkleOperation 
-} from '@synapse/client-sdk/ai';
+} from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 // Initialize client
 const client = new SynapseClient({
@@ -758,7 +758,7 @@ const results = await merkle.batchInscribeOnChain([
 #### Uso con Wallet Adapter (Browser/React)
 ```typescript
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { MerkleOperation } from '@synapse/client-sdk/ai';
+import { MerkleOperation } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 function MyComponent() {
   const { connection } = useConnection();
@@ -794,7 +794,7 @@ function MyComponent() {
 Tutti i moduli supportano `BatchOptionRequest` per ottimizzare le performance:
 
 ```typescript
-import type { BatchOptionRequest } from '@synapse/client-sdk/ai';
+import type { BatchOptionRequest } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
 const batchConfig: BatchOptionRequest = {
   batchSize: 100,        // Numero di richieste per batch
@@ -861,7 +861,7 @@ import type {
   ChunkInfo,
   InscriptionResult,
   BatchOptionRequest,
-} from '@synapse/client-sdk/ai';
+} from '@oobe-protocol-labs/synapse-client-sdk/ai';
 ```
 
 ## License

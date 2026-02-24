@@ -1,0 +1,26 @@
+/**
+ * getAccountInfo — returns parsed account data for a pubkey.
+ */
+import type { HttpTransport, CallOptions } from '../../core/transport';
+import type { Pubkey, Encoding, Commitment, RpcContext, AccountInfo, DataSlice } from '../../core/types';
+
+export interface GetAccountInfoOpts extends CallOptions {
+  encoding?: Encoding;
+  dataSlice?: DataSlice;
+  minContextSlot?: number;
+  commitment?: Commitment;
+}
+
+export async function getAccountInfo<D = string>(
+  t: HttpTransport,
+  pubkey: Pubkey,
+  opts: GetAccountInfoOpts = {}
+): Promise<RpcContext<AccountInfo<D> | null>> {
+  const { encoding, dataSlice, commitment, minContextSlot, ...rest } = opts;
+  const cfg: Record<string, unknown> = {};
+  if (encoding) cfg.encoding = encoding;
+  if (dataSlice) cfg.dataSlice = dataSlice;
+  if (commitment) cfg.commitment = commitment;
+  if (minContextSlot != null) cfg.minContextSlot = minContextSlot;
+  return t.request('getAccountInfo', [pubkey, cfg], rest);
+}

@@ -137,7 +137,7 @@ On-chain NFT analysis client using Solana RPC and DAS API for trustless, decentr
 Both clients support optional API keys for higher rate limits and custom configurations.
 
 ```typescript
-import { TensorClient, MagicEdenClient } from '@synapse/client-sdk/nft/clients';
+import { TensorClient, MagicEdenClient } from '@oobe-protocol-labs/synapse-client-sdk/nft/clients';
 
 // Tensor client configuration
 const tensorClient = new TensorClient({
@@ -194,7 +194,7 @@ const magicEdenClient = new MagicEdenClient({
 Core NFT operations and metadata handling using Solana RPC and Metaplex standards.
 
 ```typescript
-import { NFTEngine } from '@synapse/client-sdk/nft';
+import { NFTEngine } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 const nft = new NFTEngine(client);
 
@@ -210,7 +210,7 @@ console.log('Collection:', metadata.collection);
 Real-time collection statistics using Tensor and Magic Eden API clients.
 
 ```typescript
-import { CollectionAnalytics } from '@synapse/client-sdk/nft';
+import { CollectionAnalytics } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 const analytics = new CollectionAnalytics(client);
 
@@ -232,7 +232,7 @@ console.log('Listed percentage:', stats.listedPercent.toFixed(2), '%');
 Multi-marketplace price comparison using TensorClient and MagicEdenClient.
 
 ```typescript
-import { MarketplaceAggregator } from '@synapse/client-sdk/nft';
+import { MarketplaceAggregator } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 const aggregator = new MarketplaceAggregator(client);
 
@@ -249,7 +249,7 @@ console.log('Savings percentage:', prices.savings.toFixed(2), '%');
 Statistical rarity calculation based on trait distribution analysis.
 
 ```typescript
-import { AIRarityCalculator } from '@synapse/client-sdk/nft';
+import { AIRarityCalculator } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 const rarityCalc = new AIRarityCalculator(client);
 
@@ -266,7 +266,7 @@ console.log('Estimated value:', rarity.valueEstimate, 'SOL');
 Data-driven investment recommendations based on market metrics.
 
 ```typescript
-import { AIInvestmentAdvisor } from '@synapse/client-sdk/nft';
+import { AIInvestmentAdvisor } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 const advisor = new AIInvestmentAdvisor(client);
 
@@ -292,13 +292,13 @@ console.log('Time horizon:', recommendation.timeHorizon);
 ### Basic Setup
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
 import { 
   NFTEngine,
   CollectionAnalytics,
   MarketplaceAggregator,
   AIRarityCalculator 
-} from '@synapse/client-sdk/nft';
+} from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 // Initialize Synapse client
 const client = new SynapseClient({
@@ -463,7 +463,7 @@ comparison.rankings.byMomentum.forEach((addr, index) => {
 The `MarketplaceAggregator` uses both marketplace clients to find the best prices.
 
 ```typescript
-import { MarketplaceAggregator } from '@synapse/client-sdk/nft';
+import { MarketplaceAggregator } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 const aggregator = new MarketplaceAggregator(client);
 
@@ -749,8 +749,8 @@ interface MarketplaceClientConfig {
 ### Complete Configuration Example
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
-import { NFTEngine } from '@synapse/client-sdk/nft';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+import { NFTEngine } from '@oobe-protocol-labs/synapse-client-sdk/nft';
 
 const client = new SynapseClient({
   endpoint: process.env.SYNAPSE_ENDPOINT!,
@@ -867,7 +867,7 @@ async function safeGetFloorPrice(collection: string): Promise<number> {
     
     // Fallback to direct Tensor API
     try {
-      const TensorClient = (await import('@synapse/client-sdk/nft/clients')).TensorClient;
+      const TensorClient = (await import('@oobe-protocol-labs/synapse-client-sdk/nft/clients')).TensorClient;
       const tensorClient = new TensorClient({ logLevel: 'error' });
       const tensorStats = await tensorClient.getCollectionStats(collection);
       return tensorStats.floorPrice / 1e9;

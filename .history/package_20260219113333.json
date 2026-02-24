@@ -1,0 +1,162 @@
+{
+  "name": "@oobe-protocol-labs/synapse-client-sdk",
+  "version": "1.0.0-beta",
+  "description": "Advanced Synapse Client SDK - Next-gen client with AI, WebSocket, Smart Caching & Advanced Features | Powered by oobe-protocol.ai (OOBE)",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/esm/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/esm/core/client.js",
+      "require": "./dist/cjs/core/client.js",
+      "types": "./dist/esm/core/client.d.ts"
+    },
+    "./core/types": {
+      "import": "./dist/esm/core/types.js",
+      "require": "./dist/cjs/core/types.js",
+      "types": "./dist/esm/core/types.d.ts"
+    },
+    "./rpc": {
+      "import": "./dist/esm/rpc/index.js",
+      "require": "./dist/cjs/rpc/index.js",
+      "types": "./dist/esm/rpc/index.d.ts"
+    },
+    "./grpc": {
+      "import": "./dist/esm/grpc/index.js",
+      "require": "./dist/cjs/grpc/index.js",
+      "types": "./dist/esm/grpc/index.d.ts"
+    },
+    "./das": {
+      "import": "./dist/esm/das/index.js",
+      "require": "./dist/cjs/das/index.js",
+      "types": "./dist/esm/das/index.d.ts"
+    },
+    "./websocket": {
+      "import": "./dist/esm/websocket/index.js",
+      "require": "./dist/cjs/websocket/index.js",
+      "types": "./dist/esm/websocket/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/esm/utils/index.js",
+      "require": "./dist/cjs/utils/index.js",
+      "types": "./dist/esm/utils/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/*",
+        "dist/*/index.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && node scripts/fix-esm-imports.mjs && pnpm run -s build:docs",
+    "build:docs": "typedoc --out dist/docs src/index.ts && cp -r dist/docs docs && touch docs/.nojekyll",
+    "docs": "typedoc --out docs src/index.ts",
+    "win-build": "rimraf dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && pnpm run -s win-build:docs",
+    "win-build:docs": "typedoc --out dist/docs src/index.ts || echo 'typedoc non trovato, salto build docs'",
+    "dev": "tsc --watch",
+    "lint": "eslint src/**/*.ts --fix",
+    "lint:check": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build",
+    "benchmark": "node benchmark/performance.mjs",
+    "stress-test": "node benchmark/stress-test.mjs"
+  },
+  "keywords": [
+    "solana",
+    "rpc",
+    "gateway",
+    "client",
+    "sdk",
+    "ai",
+    "agents",
+    "synapse",
+    "typescript",
+    "websocket",
+    "real-time",
+    "defi",
+    "nft",
+    "analytics",
+    "performance",
+    "caching",
+    "load-balancing",
+    "circuit-breaker",
+    "blockchain",
+    "web3",
+    "dApp",
+    "smart-contracts",
+    "jupiter",
+    "metaplex",
+    "compressed-nft",
+    "das-api",
+    "priority-fees",
+    "jito",
+    "mev",
+    "advanced-features",
+    "enterprise-ready"
+  ],
+  "author": "Synapse Gateway | oobe-protocol Team",
+  "license": "MIT",
+  "dependencies": {
+    "@langchain/core": "^0.3.78",
+    "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
+    "@metaplex-foundation/umi": "^1.4.1",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4",
+    "bignumber.js": "^9.1.2",
+    "bs58": "^5.0.0",
+    "crypto-js": "^4.2.0",
+    "date-fns": "^3.6.0",
+    "eventemitter3": "^5.0.1",
+    "fast-json-stable-stringify": "^2.1.0",
+    "jose": "^5.8.0",
+    "lru-cache": "^11.1.0",
+    "p-limit": "^6.1.0",
+    "p-queue": "^8.0.1",
+    "p-retry": "^6.2.0",
+    "p-timeout": "^6.1.3",
+    "undici": "^7.14.0",
+    "ws": "^8.18.3",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^24.3.0",
+    "@types/ws": "^8.5.10",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.33.0",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.3.3",
+    "typedoc": "^0.26.10",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OOBE-PROTOCOL/synapse-client-sdk.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

@@ -175,8 +175,8 @@ Validator and voting information.
 ### Basic Usage
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
-import { SolanaRpcMethods } from '@synapse/client-sdk/methods';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+import { SolanaRpcMethods } from '@oobe-protocol-labs/synapse-client-sdk/methods';
 
 // Initialize client
 const client = new SynapseClient({
@@ -353,7 +353,7 @@ const info = await rpc.getAccountInfo(address);
 ### 1. Error Handling
 
 ```typescript
-import { SynapseError, NetworkError, TimeoutError } from '@synapse/client-sdk';
+import { SynapseError, NetworkError, TimeoutError } from '@oobe-protocol-labs/synapse-client-sdk';
 
 async function safeGetAccount(address: string) {
   try {

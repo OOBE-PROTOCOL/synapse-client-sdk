@@ -69,7 +69,7 @@ System health checks and gateway diagnostics.
 ### SynapseConstants
 
 ```typescript
-import { SynapseConstants } from '@synapse/client-sdk/utils';
+import { SynapseConstants } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 // RPC endpoints
 console.log('Base URL:', SynapseConstants.BASE_URL);
@@ -118,7 +118,7 @@ console.log('Associated Token Program:', SynapseConstants.ASSOCIATED_TOKEN_PROGR
 ### SynapseUtils
 
 ```typescript
-import { SynapseUtils } from '@synapse/client-sdk/utils';
+import { SynapseUtils } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 // Format lamports to SOL
 const sol = SynapseUtils.lamportsToSol(1_000_000_000);
@@ -170,7 +170,7 @@ console.log('Fee:', fee, 'lamports');
 ### Address Validation
 
 ```typescript
-import { SynapseUtils } from '@synapse/client-sdk/utils';
+import { SynapseUtils } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 // Validate Solana address
 const isValidAddress = SynapseUtils.isValidSolanaAddress(address);
@@ -190,7 +190,7 @@ console.log('Valid addresses:', validAddresses.length);
 ### API Key Validation
 
 ```typescript
-import { SynapseUtils } from '@synapse/client-sdk/utils';
+import { SynapseUtils } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 const utils = new SynapseUtils(client);
 
@@ -219,8 +219,8 @@ console.log('API key valid:', isValidKey);
 ### Real-Time Monitoring
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
-import { SynapseUtils } from '@synapse/client-sdk/utils';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+import { SynapseUtils } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 const client = new SynapseClient({ /* config */ });
 const utils = new SynapseUtils(client);
@@ -334,7 +334,7 @@ if (rateLimit) {
 
 ```typescript
 // ✅ Recommended: Use constants
-import { SynapseConstants } from '@synapse/client-sdk/utils';
+import { SynapseConstants } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 const client = new SynapseClient({
   endpoint: SynapseConstants.BASE_URL,
@@ -352,7 +352,7 @@ const client = new SynapseClient({
 
 ```typescript
 // ✅ Recommended: Validate before using
-import { SynapseUtils } from '@synapse/client-sdk/utils';
+import { SynapseUtils } from '@oobe-protocol-labs/synapse-client-sdk/utils';
 
 function getBalance(address: string) {
   if (!SynapseUtils.isValidSolanaAddress(address)) {

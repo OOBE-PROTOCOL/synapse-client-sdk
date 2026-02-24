@@ -57,9 +57,9 @@ Enterprise-grade DeFi integration layer for Solana blockchain with production-re
 ### Installation
 
 ```bash
-npm install @synapse/client-sdk
+npm install @oobe-protocol-labs/synapse-client-sdk
 # or
-pnpm add @synapse/client-sdk
+pnpm add @oobe-protocol-labs/synapse-client-sdk
 ```
 
 ### Type System
@@ -76,7 +76,7 @@ import type {
   TokenSupply,
   PriceData,
   AggregatedPrice,
-} from '@synapse/client-sdk/defi';
+} from '@oobe-protocol-labs/synapse-client-sdk/defi';
 ```
 
 ---
@@ -111,8 +111,8 @@ interface JupiterQuoteParams {
 #### Implementation Example
 
 ```typescript
-import { SynapseClient } from '@synapse/client-sdk';
-import { JupiterIntegration } from '@synapse/client-sdk/defi';
+import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+import { JupiterIntegration } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 import { Keypair, VersionedTransaction } from '@solana/web3.js';
 
 // Initialize client
@@ -197,7 +197,7 @@ interface JupiterQuoteResponse {
 #### Bundle Submission Protocol
 
 ```typescript
-import { JitoIntegration } from '@synapse/client-sdk/defi';
+import { JitoIntegration } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 import { SystemProgram, Transaction, Keypair } from '@solana/web3.js';
 
 const jito = new JitoIntegration(client);
@@ -281,7 +281,7 @@ interface TokenAccountInfo {
 #### Implementation
 
 ```typescript
-import { TokenDataIntegration } from '@synapse/client-sdk/defi';
+import { TokenDataIntegration } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 const tokenData = new TokenDataIntegration(client);
 
@@ -360,7 +360,7 @@ console.log('Top Holders:', largestAccounts.map(acc => ({
 #### Implementation
 
 ```typescript
-import { PriceFeedIntegration } from '@synapse/client-sdk/defi';
+import { PriceFeedIntegration } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 const priceFeed = new PriceFeedIntegration(client);
 
@@ -418,7 +418,7 @@ priceFeed.startPriceStream(
 #### Configuration
 
 ```typescript
-import { MEVProtection } from '@synapse/client-sdk/defi';
+import { MEVProtection } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 const mevProtection = new MEVProtection({
   enableJitoBundle: true,
@@ -475,7 +475,7 @@ console.log('MEV Risk Assessment:', {
 #### Implementation
 
 ```typescript
-import { ArbitrageDetector } from '@synapse/client-sdk/defi';
+import { ArbitrageDetector } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 const arbDetector = new ArbitrageDetector(client);
 
@@ -521,7 +521,7 @@ process.on('SIGINT', () => {
 #### Implementation
 
 ```typescript
-import { PortfolioAnalytics } from '@synapse/client-sdk/defi';
+import { PortfolioAnalytics } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 const portfolio = new PortfolioAnalytics(client);
 
@@ -580,7 +580,7 @@ metrics.recommendations.forEach((rec, index) => {
 #### Implementation
 
 ```typescript
-import { FlashLoanSimulator } from '@synapse/client-sdk/defi';
+import { FlashLoanSimulator } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 const flashLoan = new FlashLoanSimulator(client);
 
@@ -639,7 +639,7 @@ simulation.logs.forEach((log, index) => {
 #### Implementation
 
 ```typescript
-import { YieldFarmingFinder } from '@synapse/client-sdk/defi';
+import { YieldFarmingFinder } from '@oobe-protocol-labs/synapse-client-sdk/defi';
 
 const yieldFinder = new YieldFarmingFinder(client);
 
@@ -752,7 +752,7 @@ class DeFiError extends Error {
 ### Error Handling Pattern
 
 ```typescript
-import { DeFiError } from '@synapse/client-sdk';
+import { DeFiError } from '@oobe-protocol-labs/synapse-client-sdk';
 
 try {
   const quote = await jupiter.getQuote(params);
@@ -1010,7 +1010,7 @@ export {
 |---------|---------|---------|
 | `@solana/web3.js` | `^1.87.0` | Solana blockchain interaction |
 | `eventemitter3` | `^5.0.1` | Event-driven architecture |
-| `@synapse/client-sdk` | `latest` | Core SDK functionality |
+| `@oobe-protocol-labs/synapse-client-sdk` | `latest` | Core SDK functionality |
 
 ### Runtime Requirements
 
