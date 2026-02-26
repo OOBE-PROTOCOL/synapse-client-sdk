@@ -17,9 +17,9 @@
  * ```
  */
 
-import type { RpcRequest, RpcResponse, Commitment } from '@/core/types';
-import { NetworkError, SynapseError, TimeoutError, UpstreamError } from '@/core/errors';
-import { SDK_USER_AGENT, isBrowser } from '@/utils/env';
+import type { RpcRequest, RpcResponse, Commitment } from './types';
+import { NetworkError, SynapseError, TimeoutError, UpstreamError } from './errors';
+import { SDK_USER_AGENT, isBrowser } from '../utils/env';
 
 // ── Transport config ───────────────────────────────────────────
 
@@ -114,16 +114,16 @@ export class HttpTransport {
       const req: RpcRequest = { jsonrpc: '2.0', id: ++this.id, method, params };
       const t0 = this.debug ? performance.now() : 0;
 
-      if (this.debug) console.log(`→ [${req.id}] ${method}`, params.length ? params : '');
+      if (this.debug) console.log(`> [${req.id}] ${method}`, params.length ? params : '');
 
       const res = await this.send<T>(req, opts.timeout);
 
       if (!res.error) {
-        if (this.debug) console.log(`← [${req.id}] ✅ ${Math.round(performance.now() - t0)}ms`);
+        if (this.debug) console.log(`< [${req.id}] OK ${Math.round(performance.now() - t0)}ms`);
         return res.result as T;
       }
 
-      // Method-not-allowed → try next upstream
+      // Method-not-allowed -- try next upstream
       const msg = (res.error.message ?? '').toLowerCase();
       if (res.error.code === -32601 || msg.includes('method not allowed')) {
         lastErr = res as RpcResponse;
