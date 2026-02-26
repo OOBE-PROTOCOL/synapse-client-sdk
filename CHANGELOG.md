@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] — 2026-02-26
+
+### Added
+- **@solana/kit bridge module** (`src/kit/index.ts`) — curated re-exports and bridge utilities
+  between Synapse branded types and `@solana/kit` v6 native types.
+  - `toKitAddress` / `fromKitAddress` for `Pubkey` ↔ `Address` conversion.
+  - `toKitSignatureString` / `toKitLamports` for `Signature` & `Lamports`.
+  - Re-exports: `Address`, `KeyPairSigner`, `createSolanaRpc`, `pipe`, codecs, account helpers.
+- **`kitRpc` / `kitSubscriptions`** lazy accessors on `SynapseClient` — gives consumers direct
+  access to `@solana/kit`-native `Rpc<SolanaRpcApi>` and `RpcSubscriptions<SolanaRpcSubscriptionsApi>`
+  backed by the same endpoint.
+- **`./kit` sub-path export** in `package.json` — `import { Address, toKitAddress } from '@oobe-protocol-labs/synapse-client-sdk/kit'`.
+
+### Fixed
+- **Critical: `@/` path aliases leaking into compiled output** — TypeScript `paths` aliases were
+  not rewritten by `tsc`, causing `@/core/types` imports in `dist/cjs` and `dist/esm` that
+  Webpack, Next.js, Vite, and other bundlers could not resolve. Converted all 9 `@/` imports to
+  relative paths and removed the `paths` block from `tsconfig.json` to prevent regression.
+- **ESM directory imports broken** — the post-build `fix-esm-imports.mjs` script blindly appended
+  `.js` to all bare specifiers, producing `./tools.js` instead of `./tools/index.js` for directory
+  re-exports (`tools/`, `protocols/`, `zod/`, `jupiter/`, `raydium/`, `metaplex/`, `x402/`).
+  Rewrote the script with filesystem-aware resolution using `existsSync`.
+- **`@langchain/core` peer dependency too permissive** — the open-ended `>=0.3.0` range could
+  resolve `@langchain/core@1.x`, which is incompatible with `@langchain/openai@0.5.x`. Tightened
+  to `>=0.3.0 <0.4.0`. Also updated `zod` peerDep to `>=3.23.0 || >=4.0.0`.
+
+---
+
 ## [1.0.1] — 2025-07-15
 
 ### Added
@@ -56,5 +84,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.2]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.0-beta...v1.0.1
 [1.0.0-beta]: https://github.com/oobe-protocol-labs/synapse-client-sdk/releases/tag/v1.0.0-beta
