@@ -1,9 +1,12 @@
 /**
- * SynapseClient — top-level orchestrator that binds transport to typed RPC modules.
+ * SynapseClient -- top-level orchestrator that binds transport to typed RPC modules.
  *
  * Lazy-initializes sub-clients (`.rpc`, `.das`, `.ws`, `.grpc`) on first
- * access — zero cost if a module is never used. This is the main entry
+ * access -- zero cost if a module is never used. This is the main entry
  * point for most consumers of the SDK.
+ *
+ * Since v1.1.0, exposes `@solana/kit` native RPC and subscription clients
+ * via `.kitRpc` and `.kitSubscriptions` for full Kit interop.
  *
  * @module core/client
  * @since 1.0.0
@@ -12,23 +15,37 @@
  * ```ts
  * import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
  *
- * const client = new SynapseClient({ endpoint: 'https://rpc.synapse.com', apiKey: 'sk-…' });
+ * const client = new SynapseClient({ endpoint: 'https://rpc.synapse.com', apiKey: 'sk-...' });
  * const slot = await client.rpc.getSlot();
- * const balance = await client.rpc.getBalance(Pubkey('…'));
+ * const balance = await client.rpc.getBalance(Pubkey('...'));
  * client.destroy();
+ * ```
+ *
+ * @example Kit-native RPC
+ * ```ts
+ * import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+ * import { address } from '@oobe-protocol-labs/synapse-client-sdk/kit';
+ *
+ * const client = new SynapseClient({ endpoint: 'https://rpc.synapse.com' });
+ * const { value: balance } = await client.kitRpc
+ *   .getBalance(address('So11111111111111111111111111111111111111112'))
+ *   .send();
  * ```
  */
 
 import { HttpTransport, type TransportConfig, type CallOptions } from './transport';
 import { isBrowser } from '../utils/env';
 
+// @solana/kit lazy imports (resolved on first access)
+import type { Rpc, SolanaRpcApi, RpcSubscriptions, SolanaRpcSubscriptionsApi } from '@solana/kit';
+
 // Forward-declare lazy modules (resolved on first access)
-import type { SolanaRpc } from '@/rpc/solana-rpc';
-import type { DasClient } from '@/das/client';
-import type { WsClient } from '@/websocket/client';
-import type { GrpcTransport } from '@/grpc/transport';
-import type { EndpointConnectConfig } from '@/utils/synapse';
-import { resolveEndpoint as _resolveEndpoint, toClientConfig as _toClientConfig } from '@/utils/synapse';
+import type { SolanaRpc } from '../rpc/solana-rpc';
+import type { DasClient } from '../das/client';
+import type { WsClient } from '../websocket/client';
+import type { GrpcTransport } from '../grpc/transport';
+import type { EndpointConnectConfig } from '../utils/synapse';
+import { resolveEndpoint as _resolveEndpoint, toClientConfig as _toClientConfig } from '../utils/synapse';
 
 /**
  * Configuration for {@link SynapseClient}.
@@ -52,6 +69,10 @@ export class SynapseClient {
   private _das?: DasClient;
   private _ws?: WsClient;
   private _grpc?: GrpcTransport;
+
+  // Kit-native lazy singletons
+  private _kitRpc?: Rpc<SolanaRpcApi>;
+  private _kitSubs?: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
 
   constructor(config: SynapseClientConfig) {
     this.cfg = config;
@@ -129,7 +150,7 @@ export class SynapseClient {
    */
   get rpc(): SolanaRpc {
     if (!this._rpc) {
-      const { SolanaRpc: Ctor } = require('../rpc/solana-rpc') as typeof import('@/rpc/solana-rpc');
+      const { SolanaRpc: Ctor } = require('../rpc/solana-rpc') as typeof import('../rpc/solana-rpc');
       this._rpc = new Ctor(this.transport);
     }
     return this._rpc;
@@ -142,7 +163,7 @@ export class SynapseClient {
    */
   get das(): DasClient {
     if (!this._das) {
-      const { DasClient: Ctor } = require('../das/client') as typeof import('@/das/client');
+      const { DasClient: Ctor } = require('../das/client') as typeof import('../das/client');
       this._das = new Ctor(this.transport);
     }
     return this._das;
@@ -155,7 +176,7 @@ export class SynapseClient {
    */
   get ws(): WsClient {
     if (!this._ws) {
-      const { WsClient: Ctor } = require('../websocket/client') as typeof import('@/websocket/client');
+      const { WsClient: Ctor } = require('../websocket/client') as typeof import('../websocket/client');
       this._ws = new Ctor({ endpoint: this.cfg.wsEndpoint ?? this.cfg.endpoint.replace('http', 'ws') });
     }
     return this._ws;
@@ -179,7 +200,7 @@ export class SynapseClient {
       );
     }
     if (!this._grpc) {
-      const { GrpcTransport: Ctor } = require('../grpc/transport') as typeof import('@/grpc/transport');
+      const { GrpcTransport: Ctor } = require('../grpc/transport') as typeof import('../grpc/transport');
       this._grpc = new Ctor({ endpoint: this.cfg.grpcEndpoint ?? this.cfg.endpoint });
     }
     return this._grpc;
@@ -193,5 +214,87 @@ export class SynapseClient {
    */
   destroy(): void {
     this._ws?.close();
+  }
+
+  // ── @solana/kit native accessors ─────────────────────────────
+
+  /**
+   * Kit-native fully-typed Solana RPC client.
+   *
+   * Uses the same endpoint as the Synapse transport but returns a
+   * `Rpc<SolanaRpcApi>` instance from `@solana/kit`, giving you
+   * access to Kit's type-safe `.send()` pattern with all 53+ methods.
+   *
+   * Lazy-loaded on first access.
+   *
+   * @since 1.1.0
+   *
+   * @example
+   * ```ts
+   * import { address } from '@oobe-protocol-labs/synapse-client-sdk/kit';
+   *
+   * const { value: balance } = await client.kitRpc
+   *   .getBalance(address('So11111111111111111111111111111111111111112'))
+   *   .send();
+   * ```
+   */
+  get kitRpc(): Rpc<SolanaRpcApi> {
+    if (!this._kitRpc) {
+      const {
+        createRpc,
+        createSolanaRpcApi,
+        createDefaultRpcTransport,
+        DEFAULT_RPC_CONFIG,
+      } = require('@solana/kit') as typeof import('@solana/kit');
+      this._kitRpc = createRpc({
+        api: createSolanaRpcApi(DEFAULT_RPC_CONFIG),
+        transport: createDefaultRpcTransport({ url: this.cfg.endpoint }),
+      }) as Rpc<SolanaRpcApi>;
+    }
+    return this._kitRpc;
+  }
+
+  /**
+   * Kit-native fully-typed Solana RPC Subscriptions client.
+   *
+   * Returns a `RpcSubscriptions<SolanaRpcSubscriptionsApi>` from `@solana/kit`
+   * for real-time WebSocket subscriptions (account, slot, logs, signature, etc.)
+   * with the Kit `.subscribe()` pattern.
+   *
+   * Uses the WebSocket endpoint derived from the HTTP endpoint.
+   * Lazy-loaded on first access.
+   *
+   * @since 1.1.0
+   *
+   * @example
+   * ```ts
+   * const subs = client.kitSubscriptions;
+   * const notifications = await subs
+   *   .slotNotifications()
+   *   .subscribe({ abortSignal: AbortSignal.timeout(30_000) });
+   *
+   * for await (const slot of notifications) {
+   *   console.log('New slot:', slot.slot);
+   * }
+   * ```
+   */
+  get kitSubscriptions(): RpcSubscriptions<SolanaRpcSubscriptionsApi> {
+    if (!this._kitSubs) {
+      const {
+        createSubscriptionRpc,
+        createSolanaRpcSubscriptionsApi,
+        createDefaultRpcSubscriptionsTransport,
+        createDefaultSolanaRpcSubscriptionsChannelCreator,
+        DEFAULT_RPC_SUBSCRIPTIONS_CONFIG,
+      } = require('@solana/kit') as typeof import('@solana/kit');
+      const wsUrl = this.cfg.wsEndpoint ?? this.cfg.endpoint.replace('http', 'ws');
+      this._kitSubs = createSubscriptionRpc({
+        api: createSolanaRpcSubscriptionsApi(DEFAULT_RPC_SUBSCRIPTIONS_CONFIG),
+        transport: createDefaultRpcSubscriptionsTransport({
+          createChannel: createDefaultSolanaRpcSubscriptionsChannelCreator({ url: wsUrl }),
+        }),
+      }) as RpcSubscriptions<SolanaRpcSubscriptionsApi>;
+    }
+    return this._kitSubs;
   }
 }

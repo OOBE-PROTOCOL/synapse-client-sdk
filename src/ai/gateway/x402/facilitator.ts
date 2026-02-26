@@ -328,20 +328,20 @@ export class FacilitatorClient {
  * ```ts
  * import { createFacilitator, KnownFacilitator } from '@oobe-protocol-labs/synapse-client-sdk';
  *
- * // ✅ One-liner with a known facilitator
+ * // One-liner with a known facilitator
  * const facilitator = createFacilitator(KnownFacilitator.PayAI);
  * const facilitator = createFacilitator(KnownFacilitator.RelAI);
  * const facilitator = createFacilitator(KnownFacilitator.Dexter);
  * const facilitator = createFacilitator(KnownFacilitator.CDP);
  *
- * // ✅ Custom URL
+ * // Custom URL
  * const facilitator = createFacilitator({ url: 'https://my-facilitator.com' });
  *
- * // ✅ Known facilitator + auth override
+ * // Known facilitator + auth override
  * const facilitator = createFacilitator(KnownFacilitator.PayAI);
  * // Then set PAYAI_API_KEY_ID / PAYAI_API_KEY_SECRET env vars for production.
  *
- * // ✅ Default (PayAI free tier)
+ * // Default (PayAI free tier)
  * const facilitator = createFacilitator();
  * ```
  *

@@ -2,8 +2,12 @@
  * Solana-branded primitive types.
  *
  * Phantom brands enforce **nominal typing** at zero runtime cost.
- * Every Solana concept (pubkey, signature, slot, lamports…) gets its own
+ * Every Solana concept (pubkey, signature, slot, lamports...) gets its own
  * opaque type so the compiler prevents accidental cross-use.
+ *
+ * These types are Synapse-specific. For interop with `@solana/kit` native
+ * types ({@link Address}, {@link Signature}, etc.) see the bridge utilities
+ * in `@oobe-protocol-labs/synapse-client-sdk/kit`.
  *
  * @module core/types
  * @since 1.0.0
@@ -39,10 +43,20 @@ export type Brand<T, B extends string> = T & { readonly [__brand]: B };
 /** Base58-encoded string (Solana's default encoding). @since 1.0.0 */
 export type Base58 = Brand<string, 'Base58'>;
 
-/** Solana public key — 32 bytes, base58-encoded. @since 1.0.0 */
+/**
+ * Solana public key -- 32 bytes, base58-encoded.
+ *
+ * Use `toKitAddress()` from the `kit` module to convert to `@solana/kit`'s `Address` type.
+ * @since 1.0.0
+ */
 export type Pubkey = Brand<Base58, 'Pubkey'>;
 
-/** Transaction signature — 64 bytes, base58-encoded. @since 1.0.0 */
+/**
+ * Transaction signature -- 64 bytes, base58-encoded.
+ *
+ * For `@solana/kit` interop see `kitSignature()` in the `kit` module.
+ * @since 1.0.0
+ */
 export type Signature = Brand<Base58, 'Signature'>;
 
 /** Slot number (absolute position in the ledger). @since 1.0.0 */
@@ -51,7 +65,12 @@ export type Slot = Brand<number, 'Slot'>;
 /** Epoch number (Solana epoch counter). @since 1.0.0 */
 export type Epoch = Brand<number, 'Epoch'>;
 
-/** Lamport amount (1 SOL = 1 000 000 000 lamports). @since 1.0.0 */
+/**
+ * Lamport amount (1 SOL = 1 000 000 000 lamports).
+ *
+ * Use `toKitLamports()` from the `kit` module for `@solana/kit` interop.
+ * @since 1.0.0
+ */
 export type Lamports = Brand<bigint, 'Lamports'>;
 
 /** Unix timestamp in seconds. @since 1.0.0 */

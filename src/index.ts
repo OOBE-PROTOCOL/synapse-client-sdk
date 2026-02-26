@@ -43,6 +43,9 @@ export * from './websocket/index';
 // ── Utility helpers ────────────────────────────────────────────
 export * from './utils/index';
 
+// ── @solana/kit bridge (native types, signers, RPC) ────────────
+export * from './kit/index';
+
 // ── Convenience factory ────────────────────────────────────────
 import { SynapseClient, type SynapseClientConfig } from './core/client';
 /**
