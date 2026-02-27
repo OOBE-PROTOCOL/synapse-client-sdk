@@ -1,9 +1,9 @@
 /**
  * @module ai/tools/protocols/jupiter/schemas
- * @description Jupiter Protocol — Zod schemas for all 22 Jupiter API methods.
+ * @description Jupiter Protocol — Zod schemas for all 21 Jupiter API methods.
  *
  * Covers:
- *  - Ultra Swap API   (6 methods)
+ *  - Ultra Swap API   (5 methods)
  *  - Metis Swap API   (4 methods)
  *  - Price API v3     (1 method)
  *  - Token API        (1 method)
@@ -84,7 +84,8 @@ register(
 register(
   'getHoldings',
   z.object({
-    wallet: zPubkey.describe('Wallet address to query balances for'),
+    tokenAccountAddresses: z.array(zPubkey).min(1).max(100)
+      .describe('Array of token account addresses to query balances for'),
   }),
   z.object({
     tokens: z.array(z.object({
@@ -103,7 +104,7 @@ register(
       solUsd: z.number().optional(),
     }).optional(),
   }),
-  'Fetch all token balances and holdings for a wallet, including USD valuations.',
+  'Fetch token balances and holdings for specific token accounts, including USD valuations.',
   { httpMethod: 'GET', path: '/ultra/v1/holdings' },
 );
 
@@ -141,18 +142,6 @@ register(
   })),
   'Search for tokens by symbol, name, or mint address. Returns matching tokens with metadata.',
   { httpMethod: 'GET', path: '/ultra/v1/search' },
-);
-
-register(
-  'getRouters',
-  z.object({}),
-  z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string().optional(),
-  })),
-  'List available routing engines in Ultra Swap (e.g. Juno).',
-  { httpMethod: 'GET', path: '/ultra/v1/routers' },
 );
 
 /* ═══════════════════════════════════════════════════════════════
@@ -333,8 +322,8 @@ register(
     minted_at: z.string().nullable().optional(),
     extensions: z.record(z.string(), z.unknown()).optional(),
   })),
-  'Get the full Jupiter verified token list with metadata, tags, and daily volume.',
-  { httpMethod: 'GET', path: '/tokens/v1' },
+  'Get the full Jupiter verified token list with metadata, tags, and daily volume. (Uses tokens.jup.ag)',
+  { httpMethod: 'GET', path: '/tokens' },
 );
 
 /* ═══════════════════════════════════════════════════════════════
@@ -346,19 +335,19 @@ register(
   z.object({
     maker: zPubkey.describe('Wallet address of the order creator'),
     payer: zPubkey.describe('Wallet paying for transaction fees'),
-    inputMint: zMint,
-    outputMint: zMint,
-    makingAmount: zAmount.describe('Amount of input token to sell'),
-    takingAmount: zAmount.describe('Amount of output token to receive'),
-    expiredAt: z.string().optional().describe('ISO 8601 expiry timestamp'),
-    feeBps: z.number().optional().describe('Referral fee in bps'),
+    inputMint: zMint.describe('Input token mint (goes inside params)'),
+    outputMint: zMint.describe('Output token mint (goes inside params)'),
+    makingAmount: zAmount.describe('Amount of input token to sell (goes inside params)'),
+    takingAmount: zAmount.describe('Amount of output token to receive (goes inside params)'),
+    expiredAt: z.string().optional().describe('ISO 8601 expiry timestamp (goes inside params)'),
+    feeBps: z.number().optional().describe('Referral fee in bps (goes inside params)'),
     computeUnitPrice: z.string().optional().describe('Priority fee (µ-lamports/CU)'),
   }),
   z.object({
     order: z.string().describe('Order public key'),
     tx: zTxBase64,
   }),
-  'Create a limit order. Returns an unsigned transaction — sign and submit via executeTrigger.',
+  'Create a limit order. The tool automatically wraps order fields in a `params` object as required by Jupiter. Returns an unsigned transaction — sign and submit via executeTrigger.',
   { httpMethod: 'POST', path: '/trigger/v1/createOrder' },
 );
 
@@ -366,6 +355,7 @@ register(
   'executeTrigger',
   z.object({
     signedTransaction: zSignedTx,
+    requestId: z.string().describe('Request ID from createLimitOrder response'),
   }),
   z.object({
     signature: z.string(),
@@ -408,7 +398,7 @@ register(
   'getLimitOrders',
   z.object({
     wallet: zPubkey.describe('Wallet address to query'),
-    includeHistory: z.boolean().optional().describe('Include completed / cancelled orders'),
+    orderStatus: z.enum(['active', 'history']).describe('Filter by order status: "active" for open orders, "history" for filled/cancelled'),
     inputMint: zMint.optional(),
     outputMint: zMint.optional(),
     page: z.number().optional(),
@@ -444,7 +434,7 @@ register(
   'createDCA',
   z.object({
     payer: zPubkey.describe('Wallet paying for the DCA setup'),
-    maker: zPubkey.describe('Wallet executing the DCA'),
+    user: zPubkey.describe('Wallet executing the DCA'),
     inputMint: zMint,
     outputMint: zMint,
     totalInAmount: zAmount.describe('Total amount of input token to DCA'),
@@ -466,6 +456,7 @@ register(
   'executeDCA',
   z.object({
     signedTransaction: zSignedTx,
+    requestId: z.string().describe('Request ID from createDCA response'),
   }),
   z.object({
     signature: z.string(),
@@ -479,8 +470,9 @@ register(
 register(
   'cancelDCA',
   z.object({
-    maker: zPubkey,
+    user: zPubkey.describe('Wallet that owns the DCA order'),
     order: z.string().describe('DCA order public key to cancel'),
+    recurringType: z.enum(['time', 'price']).describe('Recurring order type — "time" for time-based DCA, "price" for price-triggered'),
     computeUnitPrice: z.string().optional(),
   }),
   z.object({
@@ -494,7 +486,8 @@ register(
   'getDCAOrders',
   z.object({
     wallet: zPubkey.describe('Wallet address to query'),
-    includeHistory: z.boolean().optional(),
+    recurringType: z.enum(['time', 'price', 'all']).describe('Recurring order type — "time" for time-based DCA, "price" for price-triggered, "all" for both'),
+    orderStatus: z.enum(['active', 'history']).describe('Filter by order status: "active" for running orders, "history" for completed/cancelled'),
     inputMint: zMint.optional(),
     outputMint: zMint.optional(),
     page: z.number().optional(),
@@ -529,7 +522,7 @@ register(
  * ═══════════════════════════════════════════════════════════════ */
 
 /**
- * @description All 22 registered Jupiter methods with typed Zod schemas.
+ * @description All 20 registered Jupiter methods with typed Zod schemas.
  * @since 1.0.0
  */
 export const jupiterMethods = methods;

@@ -27,12 +27,14 @@ import { agentRpcMethods, type AgentRpcMethod } from './zod';
 // Re-export for convenience
 export { agentRpcMethods, type AgentRpcMethod } from './zod';
 
-// ── Protocol tools (Jupiter, Raydium, Metaplex) ───────────────
+// ── Protocol tools (Jupiter, Raydium, Metaplex + On-Chain) ────
 export {
   // Factories
   createJupiterTools,
   createRaydiumTools,
   createMetaplexTools,
+  createJupiterOnchainTools,
+  createRaydiumOnchainTools,
   createProtocolTools,
   // Schemas
   jupiterMethods,
@@ -41,6 +43,10 @@ export {
   raydiumMethodNames,
   metaplexMethods,
   metaplexMethodNames,
+  jupiterOnchainMethods,
+  jupiterOnchainMethodNames,
+  raydiumOnchainMethods,
+  raydiumOnchainMethodNames,
   // Shared infrastructure
   ProtocolHttpClient,
   ProtocolApiError,
@@ -48,7 +54,10 @@ export {
   createMethodRegistry,
   // Constants
   JUPITER_API_URL,
+  JUPITER_TOKENS_API_URL,
   RAYDIUM_API_URL,
+  JUPITER_PROGRAM_IDS,
+  RAYDIUM_PROGRAM_IDS,
   // Types
   type ProtocolMethod,
   type ProtocolToolkit,
@@ -58,6 +67,8 @@ export {
   type JupiterToolsConfig,
   type RaydiumToolsConfig,
   type MetaplexToolsConfig,
+  type JupiterOnchainToolsConfig,
+  type RaydiumOnchainToolsConfig,
   type CreateProtocolToolsConfig,
   type AllProtocolToolkits,
 } from './protocols';

@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.4] — 2026-02-27
+
+### Added
+- **Jupiter On-Chain AI Tools** (`src/ai/tools/protocols/jupiter-onchain/`) — 10 new LangChain-compatible
+  tools that query Jupiter program state directly via local RPC transport, zero REST dependency.
+  - `fetchAccount`, `searchProgramAccounts`, `getTransactionHistory`, `inspectTransaction`,
+    `getLimitOrders`, `getDCAAccounts`, `getPerpsPositions`, `getTokenMintInfo`, `getTokenHoldings`,
+    `resolvePrograms`.
+  - Built-in program ID registry for 11 Jupiter programs (Swap V6, Limit Order V2, DCA, Perps,
+    Governance, Lock, Vote, Router, Merkle Distributor, Token Ledger, Referral).
+  - Memcmp-based position discovery filters for limits, DCA, and perps accounts.
+
+- **Raydium On-Chain AI Tools** (`src/ai/tools/protocols/raydium-onchain/`) — 10 new LangChain-compatible
+  tools that query Raydium program state directly via local RPC transport.
+  - `fetchAccount`, `searchProgramAccounts`, `getTransactionHistory`, `inspectTransaction`,
+    `getPoolState`, `getMultiplePoolStates`, `getPoolsByMint`, `getLPPositions`, `getFarmPositions`,
+    `resolvePrograms`.
+  - Built-in program ID registry for 7 Raydium programs (AMM V4, CLMM, CPMM, Staking, Farm V3/V5/V6).
+  - Automatic pool type detection from owner program.
+
+- **Configurable auth header** in `ProtocolHttpClient` — new `apiKeyHeader` field on
+  `ProtocolClientConfig` allows protocols to specify custom auth headers (e.g. `x-api-key`)
+  instead of the default `Authorization: Bearer`.
+
+- **Super-factory supports 5 protocol toolkits** — `createProtocolTools()` now wires Jupiter,
+  Raydium, Metaplex, Jupiter On-Chain, and Raydium On-Chain (68 total tools when all enabled).
+
+### Fixed
+- **#4 — Auth header**: Jupiter REST tools now send `x-api-key: <key>` instead of
+  `Authorization: Bearer <key>`, matching Jupiter's actual API authentication.
+- **#5 — Token List URL**: `getTokenList` now routes to `tokens.jup.ag/tokens` via a dedicated
+  `ProtocolHttpClient` instead of the non-existent `api.jup.ag/tokens/v1` path.
+- **#6 — getRouters removed**: Removed the `getRouters` method entirely — the
+  `/ultra/v1/routers` endpoint does not exist (404). Jupiter method count: 22 → 20.
+- **#7 — getHoldings params**: Changed input from `wallet: Pubkey` to
+  `tokenAccountAddresses: Pubkey[]` (array, min 1, max 100), matching the actual API contract.
+- **#8 — getLimitOrders schema**: Replaced `includeHistory: boolean` with
+  `orderStatus: 'active' | 'history'` enum to match the Jupiter Limit Order V2 API.
+- **#9 — getDCAOrders schema**: Added required `recurringType: 'time' | 'price' | 'all'` and
+  `orderStatus: 'active' | 'history'` fields; removed non-existent `includeHistory`.
+- **#10 — createLimitOrder body**: Executor now wraps `inputMint`, `outputMint`, `makingAmount`,
+  `takingAmount`, `expiredAt`, `feeBps` inside a `params: {}` object as Jupiter expects.
+- **#11 — executeTrigger schema**: Added required `requestId: string` to input schema.
+- **#12 — executeDCA schema**: Added required `requestId: string` to input schema.
+- **#13 — createDCA field rename**: Changed `maker` → `user` to match Jupiter DCA API.
+- **#14 — cancelDCA field rename + param**: Changed `maker` → `user` and added required
+  `recurringType: 'time' | 'price'` field.
+
+### Changed
+- Jupiter REST method count reduced from 22 → **20** (removed `getRouters`; count after all
+  schema corrections).
+- Total protocol tool count across all 5 toolkits: **68** (20 Jupiter + 16 Raydium + 12 Metaplex
+  + 10 Jupiter On-Chain + 10 Raydium On-Chain).
+- Test suite updated: **415 tests**, all passing.
+
+---
+
 ## [1.0.3] — 2026-02-27
 
 ### Added
@@ -76,8 +133,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Geyser gRPC Parser** (`src/grpc/parser/`) — full streaming transaction decoder with 80+
   known-program registry, instruction-level decoding, inner-instruction flattening, and token
   balance extraction. Includes `GeyserParser` high-level class and raw `decode*` utilities.
-- **Protocol Tools** — 49 new LangChain-compatible tools for on-chain protocols:
-  - Jupiter DEX: 21 tools (swap, quote, route, limit orders, DCA, token list, price).
+- **Protocol Tools** — 48 new LangChain-compatible tools for on-chain protocols:
+  - Jupiter DEX: 20 tools (swap, quote, route, limit orders, DCA, token list, price).
   - Raydium DEX: 16 tools (pools, liquidity, farming, swaps, CLMM positions).
   - Metaplex NFT: 12 tools (mint, update, verify, burn, delegate, collections).
 - **Known Facilitators Registry** (`src/ai/gateway/x402/registry.ts`) — pre-configured
@@ -116,6 +173,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.4]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.0-beta...v1.0.1
 [1.0.0-beta]: https://github.com/oobe-protocol-labs/synapse-client-sdk/releases/tag/v1.0.0-beta

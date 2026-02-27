@@ -2,7 +2,7 @@
  * @module ai/tools/protocols/jupiter/tools
  * @description Jupiter Protocol — LangChain tool factory.
  *
- * Creates 22 executable tools bound to the Jupiter REST API:
+ * Creates 21 executable tools bound to the Jupiter REST API:
  * ```ts
  * const jupiter = createJupiterTools({ apiKey: '...' });
  * agent.tools.push(...jupiter.tools);
@@ -31,13 +31,19 @@ import { jupiterMethods } from './schemas';
 export const JUPITER_API_URL = 'https://api.jup.ag';
 
 /**
+ * @description Jupiter Token API base URL (separate subdomain).
+ * @since 1.0.2
+ */
+export const JUPITER_TOKENS_API_URL = 'https://tokens.jup.ag';
+
+/**
  * @description Jupiter-specific configuration for tool creation.
  * @since 1.0.0
  */
 export interface JupiterToolsConfig {
   /** Jupiter API base URL (default: https://api.jup.ag). */
   apiUrl?: string;
-  /** API key / bearer token (optional, for higher rate limits). */
+  /** Jupiter API key — sent via `x-api-key` header (optional, for higher rate limits). */
   apiKey?: string;
   /** Request timeout in ms (default: 30 000). */
   timeout?: number;
@@ -52,12 +58,28 @@ export interface JupiterToolsConfig {
  *
  *  Routes each ProtocolMethod to the correct HTTP call based on
  *  the `httpMethod` and `path` stored in the schema registration.
+ *  Handles special cases:
+ *   - getTokenList: uses tokens.jup.ag instead of api.jup.ag
+ *   - createLimitOrder: wraps order fields in `params` object
  * ═══════════════════════════════════════════════════════════════ */
 
-function createJupiterExecutor(http: ProtocolHttpClient) {
+function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHttpClient) {
   return async (method: ProtocolMethod, input: Record<string, unknown>): Promise<unknown> => {
     const verb = method.httpMethod ?? 'GET';
     const path = method.path ?? `/${method.name}`;
+
+    // ── getTokenList: route to tokens.jup.ag ──────────────────
+    if (method.name === 'getTokenList') {
+      return tokensHttp.get(path, input);
+    }
+
+    // ── createLimitOrder: wrap order params in `params` object ─
+    if (method.name === 'createLimitOrder' && verb === 'POST') {
+      const { maker, payer, computeUnitPrice, ...params } = input;
+      const body: Record<string, unknown> = { maker, payer, params };
+      if (computeUnitPrice !== undefined) body.computeUnitPrice = computeUnitPrice;
+      return http.post(path, body);
+    }
 
     if (verb === 'POST') {
       return http.post(path, input);
@@ -78,11 +100,11 @@ function createJupiterExecutor(http: ProtocolHttpClient) {
  * @description Create LangChain-compatible tools for Jupiter Protocol.
  *
  * @param {JupiterToolsConfig & CreateProtocolToolsOpts} [config={}] - Jupiter API config and tool options
- * @returns {ProtocolToolkit} Toolkit with 22 Jupiter tools
+ * @returns {ProtocolToolkit} Toolkit with 21 Jupiter tools
  *
  * @example
  * ```ts
- * const jupiter = createJupiterTools();
+ * const jupiter = createJupiterTools({ apiKey: 'my-jupiter-key' });
  * const agent = createAgent({ tools: jupiter.tools });
  *
  * // Cherry-pick a specific tool:
@@ -103,16 +125,29 @@ export function createJupiterTools(
     ...toolOpts
   } = config;
 
+  // Main API client (api.jup.ag) — uses x-api-key header
   const httpConfig: ProtocolClientConfig = {
     baseUrl: apiUrl,
     apiKey,
+    apiKeyHeader: 'x-api-key',
+    timeout,
+    headers,
+    fetch: fetchFn,
+  };
+
+  // Token API client (tokens.jup.ag) — separate subdomain
+  const tokensHttpConfig: ProtocolClientConfig = {
+    baseUrl: JUPITER_TOKENS_API_URL,
+    apiKey,
+    apiKeyHeader: 'x-api-key',
     timeout,
     headers,
     fetch: fetchFn,
   };
 
   const http = new ProtocolHttpClient(httpConfig);
-  const execute = createJupiterExecutor(http);
+  const tokensHttp = new ProtocolHttpClient(tokensHttpConfig);
+  const execute = createJupiterExecutor(http, tokensHttp);
 
   return buildProtocolTools(jupiterMethods, execute, {
     defaultPrefix: 'jupiter_',

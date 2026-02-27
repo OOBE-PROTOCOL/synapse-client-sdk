@@ -249,8 +249,8 @@ describe('Shared Infrastructure', () => {
  * ═══════════════════════════════════════════════════════════════ */
 
 describe('Jupiter Schema Registry', () => {
-  it('registers exactly 22 methods', () => {
-    expect(jupiterMethods).toHaveLength(21);
+  it('registers exactly 20 methods', () => {
+    expect(jupiterMethods).toHaveLength(20);
   });
 
   it('all methods have required fields', () => {
@@ -279,7 +279,6 @@ describe('Jupiter Schema Registry', () => {
     expect(names).toContain('getHoldings');
     expect(names).toContain('shield');
     expect(names).toContain('searchTokens');
-    expect(names).toContain('getRouters');
   });
 
   it('includes Metis Swap methods', () => {
@@ -332,10 +331,10 @@ describe('Jupiter Schema Registry', () => {
  * ═══════════════════════════════════════════════════════════════ */
 
 describe('Jupiter Tool Factory', () => {
-  it('creates tools for all 22 methods', () => {
+  it('creates tools for all 20 methods', () => {
     const fetchMock = mockFetch({});
     const toolkit = createJupiterTools({ fetch: fetchMock });
-    expect(toolkit.tools).toHaveLength(21);
+    expect(toolkit.tools).toHaveLength(20);
     expect(toolkit.protocol).toBe('jupiter');
   });
 
@@ -698,13 +697,15 @@ describe('createProtocolTools (super-factory)', () => {
       jupiter: { fetch: fetchMock },
       raydium: { fetch: fetchMock },
       metaplex: {},
+      jupiterOnchain: false,
+      raydiumOnchain: false,
     });
 
     expect(result.jupiter).toBeDefined();
     expect(result.raydium).toBeDefined();
     expect(result.metaplex).toBeDefined();
-    expect(result.totalToolCount).toBe(21 + 16 + 12); // 49
-    expect(result.protocolSummary.jupiter).toBe(21);
+    expect(result.totalToolCount).toBe(20 + 16 + 12); // 48
+    expect(result.protocolSummary.jupiter).toBe(20);
     expect(result.protocolSummary.raydium).toBe(16);
     expect(result.protocolSummary.metaplex).toBe(12);
   });
@@ -717,13 +718,15 @@ describe('createProtocolTools (super-factory)', () => {
       jupiter: { fetch: fetchMock },
       raydium: false,
       metaplex: false,
+      jupiterOnchain: false,
+      raydiumOnchain: false,
     });
 
     expect(result.jupiter).toBeDefined();
     expect(result.raydium).toBeUndefined();
     expect(result.metaplex).toBeUndefined();
-    expect(result.totalToolCount).toBe(21);
-    expect(result.allTools).toHaveLength(21);
+    expect(result.totalToolCount).toBe(20);
+    expect(result.allTools).toHaveLength(20);
   });
 
   it('allTools is a flat array of all tools', () => {
@@ -734,6 +737,8 @@ describe('createProtocolTools (super-factory)', () => {
       jupiter: { fetch: fetchMock, include: ['getQuote'] },
       raydium: { fetch: fetchMock, include: ['getInfo'] },
       metaplex: { include: ['getAsset'] },
+      jupiterOnchain: false,
+      raydiumOnchain: false,
     });
 
     expect(result.allTools).toHaveLength(3);
@@ -761,8 +766,8 @@ describe('Cross-protocol consistency', () => {
     expect(new Set(prefixed).size).toBe(prefixed.length);
   });
 
-  it('total method count is 49 (21 + 16 + 12)', () => {
-    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length).toBe(49);
+  it('total method count is 48 (20 + 16 + 12)', () => {
+    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length).toBe(48);
   });
 
   it('every method across all protocols has a description', () => {
