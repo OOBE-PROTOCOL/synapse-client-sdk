@@ -24,6 +24,9 @@ export interface AgentRpcMethod {
   input: z.ZodTypeAny;
   /** Zod schema documenting the expected output shape. */
   output: z.ZodTypeAny;
+
+  /** Optional skill/category tag for organizing methods. */
+  skill?: string;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -79,7 +82,7 @@ registerRpcMethod('getAccountInfo',
 registerRpcMethod('getBalance',
   z.object({ pubkey: zPubkey, commitment: zCommitment, minContextSlot: zMinCtxSlot }),
   zCtx(zLamports),
-  'Returns the lamport balance of the account of provided Pubkey.',
+  'Returns the lamport balance of the account of provided Pubkey.',  
 );
 
 registerRpcMethod('getMultipleAccounts',

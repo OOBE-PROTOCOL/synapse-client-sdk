@@ -44,6 +44,7 @@ import type { SolanaRpc } from '../rpc/solana-rpc';
 import type { DasClient } from '../das/client';
 import type { WsClient } from '../websocket/client';
 import type { GrpcTransport } from '../grpc/transport';
+import type { AccountsClient } from '../accounts/index';
 import type { EndpointConnectConfig } from '../utils/synapse';
 import { resolveEndpoint as _resolveEndpoint, toClientConfig as _toClientConfig } from '../utils/synapse';
 
@@ -69,6 +70,7 @@ export class SynapseClient {
   private _das?: DasClient;
   private _ws?: WsClient;
   private _grpc?: GrpcTransport;
+  private _accounts?: AccountsClient;
 
   // Kit-native lazy singletons
   private _kitRpc?: Rpc<SolanaRpcApi>;
@@ -207,6 +209,36 @@ export class SynapseClient {
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────
+
+  /**
+   * Typed account fetchers with built-in binary decoding.
+   *
+   * Fetches raw accounts via RPC, base64-decodes the data, and applies
+   * zero-dep DataView decoders — returning fully typed objects for
+   * Token, Mint, Stake, Nonce, Lookup Table, and custom accounts.
+   *
+   * Lazy-loaded on first access.
+   *
+   * @since 1.1.0
+   *
+   * @example
+   * ```ts
+   * import { Pubkey } from '@oobe-protocol-labs/synapse-client-sdk';
+   *
+   * const mint = await client.accounts.fetchMint(Pubkey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'));
+   * console.log(`USDC supply: ${mint?.decoded.supply}, decimals: ${mint?.decoded.decimals}`);
+   *
+   * const token = await client.accounts.fetchTokenAccount(Pubkey('...'));
+   * console.log(`Balance: ${token?.decoded.amount}`);
+   * ```
+   */
+  get accounts(): AccountsClient {
+    if (!this._accounts) {
+      const { AccountsClient: Ctor } = require('../accounts/index') as typeof import('../accounts/index');
+      this._accounts = new Ctor(this.transport);
+    }
+    return this._accounts;
+  }
 
   /**
    * Gracefully shut down all active connections (WebSocket, gRPC).

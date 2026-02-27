@@ -55,6 +55,16 @@
       "types": "./dist/esm/kit/index.d.ts",
       "import": "./dist/esm/kit/index.js",
       "require": "./dist/cjs/kit/index.js"
+    },
+    "./decoders": {
+      "types": "./dist/esm/decoders/index.d.ts",
+      "import": "./dist/esm/decoders/index.js",
+      "require": "./dist/cjs/decoders/index.js"
+    },
+    "./accounts": {
+      "types": "./dist/esm/accounts/index.d.ts",
+      "import": "./dist/esm/accounts/index.js",
+      "require": "./dist/cjs/accounts/index.js"
     }
   },
   "files": [
