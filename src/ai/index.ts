@@ -54,7 +54,6 @@ export {
   createMethodRegistry,
   // Constants
   JUPITER_API_URL,
-  JUPITER_TOKENS_API_URL,
   RAYDIUM_API_URL,
   JUPITER_PROGRAM_IDS,
   RAYDIUM_PROGRAM_IDS,

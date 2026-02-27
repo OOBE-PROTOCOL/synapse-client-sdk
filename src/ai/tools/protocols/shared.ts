@@ -335,7 +335,8 @@ export function buildProtocolTools(
     );
 
     tools.push(t);
-    toolMap[method.name] = t;
+    toolMap[method.name] = t;   // unprefixed  → toolMap.getQuote
+    toolMap[toolName] = t;      // prefixed    → toolMap.jupiter_getQuote
   }
 
   // Fallback httpClient when none is provided (e.g. on-chain tools)

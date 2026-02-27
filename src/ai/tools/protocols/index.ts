@@ -37,7 +37,6 @@ export {
   jupiterMethods,
   jupiterMethodNames,
   JUPITER_API_URL,
-  JUPITER_TOKENS_API_URL,
   type JupiterToolsConfig,
 } from './jupiter';
 

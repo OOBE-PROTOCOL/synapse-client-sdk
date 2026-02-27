@@ -7,6 +7,5 @@ export { jupiterMethods, jupiterMethodNames } from './schemas';
 export {
   createJupiterTools,
   JUPITER_API_URL,
-  JUPITER_TOKENS_API_URL,
   type JupiterToolsConfig,
 } from './tools';

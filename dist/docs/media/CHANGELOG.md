@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.7] — 2026-02-27
+
+### Fixed
+- **#20 — `getTokenList` still "fetch failed" (for real this time)**: Root-caused to
+  `tokens.jup.ag` being **completely dead** — the subdomain no longer resolves in DNS.
+  Jupiter migrated all token endpoints to `api.jup.ag/tokens/v1/…`. Updated path from
+  `/tokens` to `/tokens/v1/all` and removed the separate `JUPITER_TOKENS_API_URL` constant.
+- **`getTokenInfo` broken**: Same root cause as #20 — was routing to dead `tokens.jup.ag`.
+  Path updated from `/token/{mint}` to `/tokens/v1/{mint}` on `api.jup.ag`.
+- **`throwOnError` not throwing exceptions**: `toolMap` only stored tools under **unprefixed**
+  keys (e.g. `getQuote`), but documentation showed prefixed keys (`jupiter_getQuote`).
+  Accessing `toolMap.jupiter_getQuote` returned `undefined`, causing a `TypeError` on
+  `.invoke()` that bypassed the SDK's error handling entirely. `toolMap` now stores both
+  prefixed and unprefixed keys.
+
+### Removed
+- **`getSwapHealth` tool**: Jupiter does not expose a `/swap/v1/health` endpoint — all
+  tested paths return 401. Removed the registration entirely. Jupiter tool count: 22 → 21.
+- **`JUPITER_TOKENS_API_URL` export**: The `tokens.jup.ag` base URL constant is no longer
+  exported from any barrel (`ai`, `ai/tools`, `ai/tools/protocols`, `jupiter`). Token
+  requests now route through `apiUrl` (default `api.jup.ag`).
+
+### Added
+- **`tokensApiUrl` config option** — New optional field on `JupiterToolsConfig`. Allows
+  integrators to override the base URL for token endpoints independently of the main
+  `apiUrl`. Defaults to `apiUrl` when omitted.
+- **`examples/jupiter-standalone.ts`** — End-to-end standalone usage example showing
+  `toolMap` access (prefixed + unprefixed keys), `throwOnError` with `try/catch`,
+  `tokensApiUrl` config, and correct `getDCAOrders` fields.
+
+### Changed
+- Total protocol tools: **70 → 69** (21 Jupiter + 16 Raydium + 12 Metaplex + 10 Jupiter
+  On-Chain + 10 Raydium On-Chain).
+
+---
+
 ## [1.0.6] — 2026-02-27
 
 ### Fixed
@@ -234,6 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.7]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.3...v1.0.4
