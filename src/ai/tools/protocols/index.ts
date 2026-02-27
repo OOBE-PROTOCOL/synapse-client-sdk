@@ -37,6 +37,7 @@ export {
   jupiterMethods,
   jupiterMethodNames,
   JUPITER_API_URL,
+  JUPITER_TOKENS_API_URL,
   type JupiterToolsConfig,
 } from './jupiter';
 
@@ -57,6 +58,24 @@ export {
   type MetaplexToolsConfig,
 } from './metaplex';
 
+// ── Jupiter On-Chain ───────────────────────────────────────────
+export {
+  createJupiterOnchainTools,
+  jupiterOnchainMethods,
+  jupiterOnchainMethodNames,
+  JUPITER_PROGRAM_IDS,
+  type JupiterOnchainToolsConfig,
+} from './jupiter-onchain';
+
+// ── Raydium On-Chain ───────────────────────────────────────────
+export {
+  createRaydiumOnchainTools,
+  raydiumOnchainMethods,
+  raydiumOnchainMethodNames,
+  RAYDIUM_PROGRAM_IDS,
+  type RaydiumOnchainToolsConfig,
+} from './raydium-onchain';
+
 /* ═══════════════════════════════════════════════════════════════
  *  Super-factory — createProtocolTools()
  *
@@ -69,6 +88,8 @@ import type { SynapseClient } from '../../../core/client';
 import { createJupiterTools, type JupiterToolsConfig } from './jupiter';
 import { createRaydiumTools, type RaydiumToolsConfig } from './raydium';
 import { createMetaplexTools, type MetaplexToolsConfig } from './metaplex';
+import { createJupiterOnchainTools, type JupiterOnchainToolsConfig } from './jupiter-onchain';
+import { createRaydiumOnchainTools, type RaydiumOnchainToolsConfig } from './raydium-onchain';
 import type { ProtocolToolkit, ProtocolTool, CreateProtocolToolsOpts } from './shared';
 
 /**
@@ -83,6 +104,10 @@ export interface CreateProtocolToolsConfig {
   raydium?: RaydiumToolsConfig & CreateProtocolToolsOpts | false;
   /** Metaplex config — pass `false` to skip Metaplex tools entirely. */
   metaplex?: MetaplexToolsConfig | false;
+  /** Jupiter on-chain config — pass `false` to skip Jupiter on-chain tools entirely. */
+  jupiterOnchain?: JupiterOnchainToolsConfig | false;
+  /** Raydium on-chain config — pass `false` to skip Raydium on-chain tools entirely. */
+  raydiumOnchain?: RaydiumOnchainToolsConfig | false;
 }
 
 /**
@@ -97,6 +122,10 @@ export interface AllProtocolToolkits {
   raydium?: ProtocolToolkit;
   /** Metaplex toolkit (undefined if disabled). */
   metaplex?: ProtocolToolkit;
+  /** Jupiter on-chain toolkit (undefined if disabled). */
+  jupiterOnchain?: ProtocolToolkit;
+  /** Raydium on-chain toolkit (undefined if disabled). */
+  raydiumOnchain?: ProtocolToolkit;
   /** Flat array of ALL tools across all enabled protocols — pass directly to an agent. */
   allTools: ProtocolTool[];
   /** Total number of tools. */
@@ -140,6 +169,8 @@ export function createProtocolTools(
   let jupiter: ProtocolToolkit | undefined;
   let raydium: ProtocolToolkit | undefined;
   let metaplex: ProtocolToolkit | undefined;
+  let jupiterOnchain: ProtocolToolkit | undefined;
+  let raydiumOnchain: ProtocolToolkit | undefined;
 
   // Jupiter
   if (config.jupiter !== false) {
@@ -162,10 +193,26 @@ export function createProtocolTools(
     protocolSummary.metaplex = metaplex.tools.length;
   }
 
+  // Jupiter On-Chain
+  if (config.jupiterOnchain !== false) {
+    jupiterOnchain = createJupiterOnchainTools(client, config.jupiterOnchain ?? {});
+    allTools.push(...jupiterOnchain.tools);
+    protocolSummary.jupiterOnchain = jupiterOnchain.tools.length;
+  }
+
+  // Raydium On-Chain
+  if (config.raydiumOnchain !== false) {
+    raydiumOnchain = createRaydiumOnchainTools(client, config.raydiumOnchain ?? {});
+    allTools.push(...raydiumOnchain.tools);
+    protocolSummary.raydiumOnchain = raydiumOnchain.tools.length;
+  }
+
   return {
     jupiter,
     raydium,
     metaplex,
+    jupiterOnchain,
+    raydiumOnchain,
     allTools,
     totalToolCount: allTools.length,
     protocolSummary,

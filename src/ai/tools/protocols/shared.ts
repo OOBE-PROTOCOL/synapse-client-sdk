@@ -91,8 +91,15 @@ export interface ProtocolClientConfig {
   timeout?: number;
   /** Extra headers merged into every request. */
   headers?: Record<string, string>;
-  /** Bearer token — set as Authorization header. */
+  /** API key for authentication. */
   apiKey?: string;
+  /**
+   * Header name used to send the API key.
+   * Default: `'Authorization'` (sent as `Bearer <key>`).
+   * Set to `'x-api-key'` for Jupiter, or any custom header name.
+   * When set to a value other than `'Authorization'`, the raw key is sent as-is.
+   */
+  apiKeyHeader?: string;
   /** Override the global fetch (useful for testing / Node 16). */
   fetch?: typeof globalThis.fetch;
 }
@@ -117,7 +124,10 @@ export class ProtocolHttpClient {
       ...config.headers,
     };
     if (config.apiKey) {
-      this.headers['Authorization'] = `Bearer ${config.apiKey}`;
+      const headerName = config.apiKeyHeader ?? 'Authorization';
+      this.headers[headerName] = headerName === 'Authorization'
+        ? `Bearer ${config.apiKey}`
+        : config.apiKey;
     }
     this._fetch = config.fetch ?? globalThis.fetch;
   }
