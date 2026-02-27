@@ -57,9 +57,10 @@ export function registerRpcMethod<I extends z.ZodTypeAny, O extends z.ZodTypeAny
   input: I,
   output: O,
   description?: string,
+  skill?: string,
 ): AgentRpcMethod {
   if (!_registry) _registry = [];
-  const method: AgentRpcMethod = { name, input, output, description };
+  const method: AgentRpcMethod = { name, input, output, description, skill  };
   _registry.push(method);
   return method;
 }

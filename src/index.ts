@@ -46,6 +46,12 @@ export * from './utils/index';
 // ── @solana/kit bridge (native types, signers, RPC) ────────────
 export * from './kit/index';
 
+// ── Native account data decoders (zero-dep, DataView-based) ────
+export * from './decoders/index';
+
+// ── Typed account fetchers (RPC + decode in one call) ──────────
+export * from './accounts/index';
+
 // ── Convenience factory ────────────────────────────────────────
 import { SynapseClient, type SynapseClientConfig } from './core/client';
 /**
