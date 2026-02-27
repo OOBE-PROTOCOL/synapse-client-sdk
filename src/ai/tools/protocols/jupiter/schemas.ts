@@ -1,12 +1,12 @@
 /**
  * @module ai/tools/protocols/jupiter/schemas
- * @description Jupiter Protocol — Zod schemas for all 21 Jupiter API methods.
+ * @description Jupiter Protocol — Zod schemas for all 22 Jupiter API methods.
  *
  * Covers:
  *  - Ultra Swap API   (5 methods)
  *  - Metis Swap API   (4 methods)
  *  - Price API v3     (1 method)
- *  - Token API        (1 method)
+ *  - Token API        (3 methods — list, info, health)
  *  - Trigger API      (5 methods — limit orders)
  *  - Recurring API    (4 methods — DCA)
  *
@@ -326,6 +326,38 @@ register(
   { httpMethod: 'GET', path: '/tokens' },
 );
 
+register(
+  'getTokenInfo',
+  z.object({
+    mint: zMint.describe('Token mint address to query'),
+  }),
+  z.object({
+    address: zMint,
+    name: z.string(),
+    symbol: z.string(),
+    decimals: z.number(),
+    logoURI: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    daily_volume: z.number().optional(),
+    created_at: z.string().optional(),
+    freeze_authority: z.string().nullable().optional(),
+    mint_authority: z.string().nullable().optional(),
+    permanent_delegate: z.string().nullable().optional(),
+    minted_at: z.string().nullable().optional(),
+    extensions: z.record(z.string(), z.unknown()).optional(),
+  }),
+  'Get metadata for a single token by mint address. (Uses tokens.jup.ag)',
+  { httpMethod: 'GET', path: '/token' },
+);
+
+register(
+  'getSwapHealth',
+  z.object({}),
+  z.string().describe('"ok" when healthy'),
+  'Check Jupiter Swap API health status.',
+  { httpMethod: 'GET', path: '/swap/v1/health' },
+);
+
 /* ═══════════════════════════════════════════════════════════════
  *  5. Trigger API — /trigger/v1/* (Limit Orders)
  * ═══════════════════════════════════════════════════════════════ */
@@ -488,6 +520,7 @@ register(
     user: zPubkey.describe('Wallet address to query (sent as "user" query param to Jupiter)'),
     recurringType: z.enum(['time', 'price', 'all']).describe('Recurring order type — "time" for time-based DCA, "price" for price-triggered, "all" for both'),
     orderStatus: z.enum(['active', 'history']).describe('Filter by order status: "active" for running orders, "history" for completed/cancelled'),
+    includeFailedTx: z.boolean().optional().default(false).describe('Include failed transactions in results (default: false)'),
     inputMint: zMint.optional(),
     outputMint: zMint.optional(),
     page: z.number().optional(),

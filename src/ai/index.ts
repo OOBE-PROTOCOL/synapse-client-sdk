@@ -178,3 +178,9 @@ export {
   type PaywallResult,
   type SettleResult,
 } from './gateway';
+
+// ── Lazy factories (Next.js / webpack compatibility) ──────────
+export {
+  getJupiterTools,
+  getRaydiumTools,
+} from './lazy';

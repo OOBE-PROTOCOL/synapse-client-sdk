@@ -112,6 +112,7 @@ export function createRaydiumTools(
 
   return buildProtocolTools(raydiumMethods, execute, {
     defaultPrefix: 'raydium_',
+    httpClient: http,
     ...toolOpts,
   });
 }

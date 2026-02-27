@@ -1,6 +1,6 @@
 {
   "name": "@oobe-protocol-labs/synapse-client-sdk",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Synapse Client SDK -- Typed Solana RPC gateway with @solana/kit native types, 53 JSON-RPC methods, DAS, WebSocket, gRPC/Geyser parser, signers/wallets, and AI agent tooling (LangChain, x402) | Powered by oobeprotocol.ai (OOBE)",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -60,6 +60,11 @@
       "types": "./dist/esm/ai/tools/protocols/index.d.ts",
       "import": "./dist/esm/ai/tools/protocols/index.js",
       "require": "./dist/cjs/ai/tools/protocols/index.js"
+    },
+    "./ai/lazy": {
+      "types": "./dist/esm/ai/lazy.d.ts",
+      "import": "./dist/esm/ai/lazy.js",
+      "require": "./dist/cjs/ai/lazy.js"
     },
     "./kit": {
       "types": "./dist/esm/kit/index.d.ts",

@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.6] — 2026-02-27
+
+### Fixed
+- **#19 — `getDCAOrders` missing `includeFailedTx`**: Added optional `includeFailedTx` boolean
+  (default `false`) to the `getDCAOrders` Zod schema. Jupiter's Recurring API expects this query
+  parameter; omitting it caused a 400 "Bad Request" from the upstream.
+- **#20 — `getTokenList` still fails "fetch failed"**: Root-caused to `Content-Type: application/json`
+  being sent on **GET** requests. `tokens.jup.ag` rejects GETs with that header. The v1.0.5 fix
+  (`fetch.bind(globalThis)`) was necessary but not sufficient. `ProtocolHttpClient` now only attaches
+  `Content-Type: application/json` on **POST** requests; GET requests use bare common headers.
+
+### Added
+- **`getTokenInfo` tool** — New Jupiter Token API method (`GET /token/{mint}` on `tokens.jup.ag`).
+  Returns detailed metadata for a single mint address. Jupiter tool count: 20 → 22.
+- **`getSwapHealth` tool** — New Jupiter health-check method (`GET /swap/v1/health`). Returns the
+  current Swap API health status as a plain string.
+- **`getHeaders()` accessor** — `ProtocolHttpClient` and `ProtocolToolkit` now expose a
+  `getHeaders()` method returning a copy of the common headers. Integrators no longer need to
+  duplicate header logic.
+- **`httpClient` on toolkit** — `ProtocolToolkit` now exposes its underlying `ProtocolHttpClient`
+  instance, enabling advanced use-cases (custom middleware, manual requests).
+- **`throwOnError` mode** — New `throwOnError?: boolean` option in `CreateProtocolToolsOpts`.
+  When enabled, tool invocations throw a `ProtocolApiError` instead of returning a JSON-stringified
+  error string — making it easy to use `try/catch` in agent pipelines.
+- **Lazy protocol factories** (`src/ai/lazy.ts`) — `getJupiterTools(config)` and
+  `getRaydiumTools(config)` use dynamic `import()` for tree-shaking-friendly, webpack/Next.js-safe
+  lazy loading. Singletons are cached and invalidated on config change. Importable via
+  `@oobe-protocol-labs/synapse-client-sdk/ai/lazy` sub-path.
+
+### Changed
+- Total protocol tools: **68 → 70** (22 Jupiter + 16 Raydium + 12 Metaplex + 10 Jupiter On-Chain
+  + 10 Raydium On-Chain).
+
+---
+
 ## [1.0.5] — 2026-02-27
 
 ### Fixed
@@ -199,6 +234,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.6]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.2...v1.0.3
