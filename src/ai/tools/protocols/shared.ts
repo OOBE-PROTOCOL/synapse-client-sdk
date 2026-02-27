@@ -112,24 +112,33 @@ export interface ProtocolClientConfig {
 export class ProtocolHttpClient {
   readonly baseUrl: string;
   private readonly timeout: number;
-  private readonly headers: Record<string, string>;
+  /** Common headers sent on every request (Accept, auth). */
+  private readonly _commonHeaders: Record<string, string>;
   private readonly _fetch: typeof globalThis.fetch;
 
   constructor(config: ProtocolClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
     this.timeout = config.timeout ?? 30_000;
-    this.headers = {
-      'Content-Type': 'application/json',
+    this._commonHeaders = {
       Accept: 'application/json',
       ...config.headers,
     };
     if (config.apiKey) {
       const headerName = config.apiKeyHeader ?? 'Authorization';
-      this.headers[headerName] = headerName === 'Authorization'
+      this._commonHeaders[headerName] = headerName === 'Authorization'
         ? `Bearer ${config.apiKey}`
         : config.apiKey;
     }
     this._fetch = config.fetch ?? globalThis.fetch.bind(globalThis);
+  }
+
+  /**
+   * Returns a copy of the auth/common headers configured on this client.
+   * Useful for consumers who need to make direct `fetch` calls to
+   * endpoints not covered by a dedicated tool.
+   */
+  getHeaders(): Record<string, string> {
+    return { ...this._commonHeaders };
   }
 
   /** HTTP GET with query-string serialisation. */
@@ -150,7 +159,7 @@ export class ProtocolHttpClient {
     try {
       const res = await this._fetch(url.toString(), {
         method: 'GET',
-        headers: this.headers,
+        headers: this._commonHeaders,
         signal: controller.signal,
       });
       if (!res.ok) throw new ProtocolApiError(res.status, await res.text(), path);
@@ -167,7 +176,7 @@ export class ProtocolHttpClient {
     try {
       const res = await this._fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
-        headers: this.headers,
+        headers: { ...this._commonHeaders, 'Content-Type': 'application/json' },
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
@@ -207,7 +216,7 @@ export type ProtocolTool = ReturnType<typeof tool>;
 
 /**
  * @description Toolkit shape returned by every `createXxxTools()` factory.
- * Contains tools array, keyed map, and method metadata.
+ * Contains tools array, keyed map, method metadata, and HTTP client access.
  * @since 1.0.0
  */
 export interface ProtocolToolkit {
@@ -221,6 +230,23 @@ export interface ProtocolToolkit {
   methods: ProtocolMethod[];
   /** All method names available in this toolkit. */
   methodNames: string[];
+  /**
+   * Get a copy of the auth + common headers this toolkit uses.
+   * Useful for making direct `fetch` calls to uncovered endpoints.
+   * @since 1.0.6
+   */
+  getHeaders: () => Record<string, string>;
+  /**
+   * Get the underlying `ProtocolHttpClient` for direct REST calls
+   * to endpoints not covered by a dedicated tool.
+   *
+   * ```ts
+   * const jup = createJupiterTools({ apiKey: '...' });
+   * const tokenInfo = await jup.httpClient.get('/token/So111...');
+   * ```
+   * @since 1.0.6
+   */
+  httpClient: ProtocolHttpClient;
 }
 
 /**
@@ -236,6 +262,13 @@ export interface CreateProtocolToolsOpts {
   exclude?: string[];
   /** Pretty-print JSON output (default: true). */
   prettyJson?: boolean;
+  /**
+   * When `true`, protocol API errors (non-2xx responses) are thrown as
+   * `ProtocolApiError` instead of being returned as an error-JSON string.
+   * Useful for try/catch-based flows. Default: `false` (LangChain-friendly).
+   * @since 1.0.6
+   */
+  throwOnError?: boolean;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -258,7 +291,7 @@ export interface CreateProtocolToolsOpts {
 export function buildProtocolTools(
   methods: readonly ProtocolMethod[],
   execute: (method: ProtocolMethod, input: Record<string, unknown>) => Promise<unknown>,
-  opts: CreateProtocolToolsOpts & { defaultPrefix?: string } = {},
+  opts: CreateProtocolToolsOpts & { defaultPrefix?: string; httpClient?: ProtocolHttpClient } = {},
 ): ProtocolToolkit {
   const protocol = methods[0]?.protocol ?? 'unknown';
   const {
@@ -266,6 +299,8 @@ export function buildProtocolTools(
     include,
     exclude,
     prettyJson = true,
+    throwOnError = false,
+    httpClient,
   } = opts;
 
   const tools: ProtocolTool[] = [];
@@ -283,6 +318,7 @@ export function buildProtocolTools(
           const result = await execute(method, input as Record<string, unknown>);
           return prettyJson ? JSON.stringify(result, null, 2) : JSON.stringify(result);
         } catch (err: any) {
+          if (throwOnError) throw err;
           return JSON.stringify({
             error: true,
             protocol,
@@ -302,11 +338,16 @@ export function buildProtocolTools(
     toolMap[method.name] = t;
   }
 
+  // Fallback httpClient when none is provided (e.g. on-chain tools)
+  const client = httpClient ?? new ProtocolHttpClient({ baseUrl: 'https://localhost' });
+
   return {
     protocol,
     tools,
     toolMap,
     methods: methods as ProtocolMethod[],
     methodNames: methods.map((m) => m.name),
+    getHeaders: () => client.getHeaders(),
+    httpClient: client,
   };
 }

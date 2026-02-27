@@ -2,7 +2,7 @@
  * @module ai/tools/protocols/jupiter/tools
  * @description Jupiter Protocol — LangChain tool factory.
  *
- * Creates 21 executable tools bound to the Jupiter REST API:
+ * Creates 22 executable tools bound to the Jupiter REST API:
  * ```ts
  * const jupiter = createJupiterTools({ apiKey: '...' });
  * agent.tools.push(...jupiter.tools);
@@ -72,6 +72,12 @@ function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHtt
       return tokensHttp.get(path, input);
     }
 
+    // ── getTokenInfo: route to tokens.jup.ag/token/{mint} ─────
+    if (method.name === 'getTokenInfo') {
+      const { mint, ...rest } = input;
+      return tokensHttp.get(`/token/${mint}`, rest);
+    }
+
     if (verb === 'POST') {
       return http.post(path, input);
     }
@@ -91,7 +97,7 @@ function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHtt
  * @description Create LangChain-compatible tools for Jupiter Protocol.
  *
  * @param {JupiterToolsConfig & CreateProtocolToolsOpts} [config={}] - Jupiter API config and tool options
- * @returns {ProtocolToolkit} Toolkit with 21 Jupiter tools
+ * @returns {ProtocolToolkit} Toolkit with 22 Jupiter tools
  *
  * @example
  * ```ts
@@ -142,6 +148,7 @@ export function createJupiterTools(
 
   return buildProtocolTools(jupiterMethods, execute, {
     defaultPrefix: 'jupiter_',
+    httpClient: http,
     ...toolOpts,
   });
 }
