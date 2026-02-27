@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.3] — 2026-02-27
+
+### Added
+- **Native Solana account data decoders** (`src/decoders/`) — zero-dependency binary decoders
+  verified field-by-field against official Solana source code (`solana-program/token`, `anza-xyz/agave`).
+  - `AccountReader` — DataView-based binary reader with LE byte order, COption (C ABI) support.
+  - `decodeTokenAccount` — SPL Token Account (165 bytes): mint, owner, amount, delegate, state,
+    isNative, delegatedAmount, closeAuthority.
+  - `decodeMint` — SPL Token Mint (82 bytes): mintAuthority, supply, decimals, isInitialized,
+    freezeAuthority.
+  - `decodeToken2022Account` / `decodeToken2022Mint` — Token Extensions with TLV parser
+    (TransferFeeConfig, MintCloseAuthority, MetadataPointer, ImmutableOwner, MemoTransfer, etc.).
+  - `decodeStakeAccount` — Stake program (200 bytes): Meta (authorized + lockup) + Delegation
+    (voterPubkey, stake, activationEpoch, deactivationEpoch, warmupCooldownRate) + creditsObserved.
+  - `decodeNonceAccount` — Durable nonce (80 bytes): version, state, authority, blockhash,
+    lamportsPerSignature.
+  - `decodeLookupTable` — Address Lookup Table (56-byte header + N×32 addresses):
+    deactivationSlot, lastExtendedSlot, authority, addresses.
+  - `decodeMultisig` — SPL Multisig (355 bytes): m, n, isInitialized, signers[11].
+  - `encodeBase58` — self-contained base58 encoder (no external dependencies).
+- **Typed account fetchers** (`src/accounts/`) — high-level account fetching with automatic
+  decoding wired into `SynapseClient`.
+  - `AccountsClient` class accessible via `client.accounts`.
+  - `fetchTokenAccount` / `fetchMint` — auto-detects Token vs Token-2022 by program owner.
+  - `fetchTokenAccountsByOwner` — batch fetch all token accounts for a wallet.
+  - `fetchStakeAccount` / `fetchNonceAccount` / `fetchLookupTable`.
+  - `getDecodedAccount<T>` / `getDecodedAccounts<T>` generic helpers.
+- **Sub-path exports** — `./decoders` and `./accounts` added to `package.json` exports map.
+- **37 new unit tests** for all decoders with hand-crafted byte buffers (415 total, all passing).
+
+---
+
 ## [1.0.2] — 2026-02-26
 
 ### Added
