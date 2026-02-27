@@ -1,12 +1,12 @@
 /**
  * @module ai/tools/protocols/jupiter/schemas
- * @description Jupiter Protocol — Zod schemas for all 22 Jupiter API methods.
+ * @description Jupiter Protocol — Zod schemas for all 21 Jupiter API methods.
  *
  * Covers:
  *  - Ultra Swap API   (5 methods)
  *  - Metis Swap API   (4 methods)
  *  - Price API v3     (1 method)
- *  - Token API        (3 methods — list, info, health)
+ *  - Token API        (2 methods — list, info)
  *  - Trigger API      (5 methods — limit orders)
  *  - Recurring API    (4 methods — DCA)
  *
@@ -299,7 +299,7 @@ register(
 );
 
 /* ═══════════════════════════════════════════════════════════════
- *  4. Token API — /tokens/v1
+ *  4. Token API — /tokens/v1  (served from tokensApiUrl)
  * ═══════════════════════════════════════════════════════════════ */
 
 register(
@@ -322,8 +322,8 @@ register(
     minted_at: z.string().nullable().optional(),
     extensions: z.record(z.string(), z.unknown()).optional(),
   })),
-  'Get the full Jupiter verified token list with metadata, tags, and daily volume. (Uses tokens.jup.ag)',
-  { httpMethod: 'GET', path: '/tokens' },
+  'Get the full Jupiter verified token list with metadata, tags, and daily volume.',
+  { httpMethod: 'GET', path: '/tokens/v1/all' },
 );
 
 register(
@@ -346,16 +346,8 @@ register(
     minted_at: z.string().nullable().optional(),
     extensions: z.record(z.string(), z.unknown()).optional(),
   }),
-  'Get metadata for a single token by mint address. (Uses tokens.jup.ag)',
-  { httpMethod: 'GET', path: '/token' },
-);
-
-register(
-  'getSwapHealth',
-  z.object({}),
-  z.string().describe('"ok" when healthy'),
-  'Check Jupiter Swap API health status.',
-  { httpMethod: 'GET', path: '/swap/v1/health' },
+  'Get metadata for a single token by mint address.',
+  { httpMethod: 'GET', path: '/tokens/v1' },
 );
 
 /* ═══════════════════════════════════════════════════════════════

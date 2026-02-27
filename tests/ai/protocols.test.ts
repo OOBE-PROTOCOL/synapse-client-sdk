@@ -249,8 +249,8 @@ describe('Shared Infrastructure', () => {
  * ═══════════════════════════════════════════════════════════════ */
 
 describe('Jupiter Schema Registry', () => {
-  it('registers exactly 22 methods', () => {
-    expect(jupiterMethods).toHaveLength(22);
+  it('registers exactly 21 methods', () => {
+    expect(jupiterMethods).toHaveLength(21);
   });
 
   it('all methods have required fields', () => {
@@ -331,10 +331,10 @@ describe('Jupiter Schema Registry', () => {
  * ═══════════════════════════════════════════════════════════════ */
 
 describe('Jupiter Tool Factory', () => {
-  it('creates tools for all 22 methods', () => {
+  it('creates tools for all 21 methods', () => {
     const fetchMock = mockFetch({});
     const toolkit = createJupiterTools({ fetch: fetchMock });
-    expect(toolkit.tools).toHaveLength(22);
+    expect(toolkit.tools).toHaveLength(21);
     expect(toolkit.protocol).toBe('jupiter');
   });
 
@@ -364,9 +364,9 @@ describe('Jupiter Tool Factory', () => {
 
   it('exclude filter removes tools', () => {
     const fetchMock = mockFetch({});
-    const toolkit = createJupiterTools({ fetch: fetchMock, exclude: ['getSwapHealth'] });
-    expect(toolkit.tools).toHaveLength(21);
-    expect(toolkit.toolMap.getSwapHealth).toBeUndefined();
+    const toolkit = createJupiterTools({ fetch: fetchMock, exclude: ['getTokenInfo'] });
+    expect(toolkit.tools).toHaveLength(20);
+    expect(toolkit.toolMap.getTokenInfo).toBeUndefined();
   });
 
   it('GET tool sends query params to correct path', async () => {
@@ -704,8 +704,8 @@ describe('createProtocolTools (super-factory)', () => {
     expect(result.jupiter).toBeDefined();
     expect(result.raydium).toBeDefined();
     expect(result.metaplex).toBeDefined();
-    expect(result.totalToolCount).toBe(22 + 16 + 12); // 50
-    expect(result.protocolSummary.jupiter).toBe(22);
+    expect(result.totalToolCount).toBe(21 + 16 + 12); // 49
+    expect(result.protocolSummary.jupiter).toBe(21);
     expect(result.protocolSummary.raydium).toBe(16);
     expect(result.protocolSummary.metaplex).toBe(12);
   });
@@ -725,8 +725,8 @@ describe('createProtocolTools (super-factory)', () => {
     expect(result.jupiter).toBeDefined();
     expect(result.raydium).toBeUndefined();
     expect(result.metaplex).toBeUndefined();
-    expect(result.totalToolCount).toBe(22);
-    expect(result.allTools).toHaveLength(22);
+    expect(result.totalToolCount).toBe(21);
+    expect(result.allTools).toHaveLength(21);
   });
 
   it('allTools is a flat array of all tools', () => {
@@ -766,8 +766,8 @@ describe('Cross-protocol consistency', () => {
     expect(new Set(prefixed).size).toBe(prefixed.length);
   });
 
-  it('total method count is 50 (22 + 16 + 12)', () => {
-    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length).toBe(50);
+  it('total method count is 49 (21 + 16 + 12)', () => {
+    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length).toBe(49);
   });
 
   it('every method across all protocols has a description', () => {
