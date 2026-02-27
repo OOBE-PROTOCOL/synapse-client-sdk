@@ -129,7 +129,7 @@ export class ProtocolHttpClient {
         ? `Bearer ${config.apiKey}`
         : config.apiKey;
     }
-    this._fetch = config.fetch ?? globalThis.fetch;
+    this._fetch = config.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   /** HTTP GET with query-string serialisation. */

@@ -60,7 +60,6 @@ export interface JupiterToolsConfig {
  *  the `httpMethod` and `path` stored in the schema registration.
  *  Handles special cases:
  *   - getTokenList: uses tokens.jup.ag instead of api.jup.ag
- *   - createLimitOrder: wraps order fields in `params` object
  * ═══════════════════════════════════════════════════════════════ */
 
 function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHttpClient) {
@@ -71,14 +70,6 @@ function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHtt
     // ── getTokenList: route to tokens.jup.ag ──────────────────
     if (method.name === 'getTokenList') {
       return tokensHttp.get(path, input);
-    }
-
-    // ── createLimitOrder: wrap order params in `params` object ─
-    if (method.name === 'createLimitOrder' && verb === 'POST') {
-      const { maker, payer, computeUnitPrice, ...params } = input;
-      const body: Record<string, unknown> = { maker, payer, params };
-      if (computeUnitPrice !== undefined) body.computeUnitPrice = computeUnitPrice;
-      return http.post(path, body);
     }
 
     if (verb === 'POST') {

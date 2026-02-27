@@ -335,19 +335,19 @@ register(
   z.object({
     maker: zPubkey.describe('Wallet address of the order creator'),
     payer: zPubkey.describe('Wallet paying for transaction fees'),
-    inputMint: zMint.describe('Input token mint (goes inside params)'),
-    outputMint: zMint.describe('Output token mint (goes inside params)'),
-    makingAmount: zAmount.describe('Amount of input token to sell (goes inside params)'),
-    takingAmount: zAmount.describe('Amount of output token to receive (goes inside params)'),
-    expiredAt: z.string().optional().describe('ISO 8601 expiry timestamp (goes inside params)'),
-    feeBps: z.number().optional().describe('Referral fee in bps (goes inside params)'),
+    inputMint: zMint.describe('Input token mint'),
+    outputMint: zMint.describe('Output token mint'),
+    makingAmount: zAmount.describe('Amount of input token to sell'),
+    takingAmount: zAmount.describe('Amount of output token to receive'),
+    expiredAt: z.string().optional().describe('ISO 8601 expiry timestamp'),
+    feeBps: z.number().optional().describe('Referral fee in bps'),
     computeUnitPrice: z.string().optional().describe('Priority fee (µ-lamports/CU)'),
   }),
   z.object({
     order: z.string().describe('Order public key'),
     tx: zTxBase64,
   }),
-  'Create a limit order. The tool automatically wraps order fields in a `params` object as required by Jupiter. Returns an unsigned transaction — sign and submit via executeTrigger.',
+  'Create a limit order. Returns an unsigned transaction — sign and submit via executeTrigger.',
   { httpMethod: 'POST', path: '/trigger/v1/createOrder' },
 );
 
@@ -485,7 +485,7 @@ register(
 register(
   'getDCAOrders',
   z.object({
-    wallet: zPubkey.describe('Wallet address to query'),
+    user: zPubkey.describe('Wallet address to query (sent as "user" query param to Jupiter)'),
     recurringType: z.enum(['time', 'price', 'all']).describe('Recurring order type — "time" for time-based DCA, "price" for price-triggered, "all" for both'),
     orderStatus: z.enum(['active', 'history']).describe('Filter by order status: "active" for running orders, "history" for completed/cancelled'),
     inputMint: zMint.optional(),

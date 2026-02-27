@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.5] — 2026-02-27
+
+### Fixed
+- **#15 — AI barrel exports**: `./ai` sub-path now re-exports all protocol tool factories
+  (`createJupiterTools`, `createRaydiumTools`, `createMetaplexTools`, `createJupiterOnchainTools`,
+  `createRaydiumOnchainTools`, `createProtocolTools`), method schemas, shared infrastructure
+  (`ProtocolHttpClient`, `buildProtocolTools`, `createMethodRegistry`), program-ID constants,
+  and all protocol types. Added `./ai/tools` and `./ai/tools/protocols` sub-path exports to
+  `package.json` for granular imports.
+- **#16 — `getTokenList` fetch crash**: `ProtocolHttpClient` now binds `globalThis.fetch` with
+  `.bind(globalThis)` to prevent context-loss errors in Node.js environments ("fetch failed",
+  "Illegal invocation").
+- **#17 — `getDCAOrders` missing `user` param**: Renamed schema field from `wallet` to `user` so
+  the query string is serialised as `?user=…` — matching the Jupiter DCA API contract.
+- **#18 — `createLimitOrder` params wrapper**: Removed the `params` object wrapper introduced in
+  v1.0.4 (#10 fix). Jupiter Limit Order V2 actually expects a **flat** POST body with all fields
+  at top level. The executor now sends the body as-is via the generic POST path.
+
+### Added
+- **Individual decoder sub-path exports** — each decoder module can now be imported independently
+  via fine-grained sub-paths, useful for tree-shaking and type-only imports:
+  `./decoders/token`, `./decoders/token-2022`, `./decoders/stake`, `./decoders/nonce`,
+  `./decoders/lookup-table`, `./decoders/multisig`, `./decoders/layout`.
+
+---
+
 ## [1.0.4] — 2026-02-27
 
 ### Added
@@ -173,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.5]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.1...v1.0.2

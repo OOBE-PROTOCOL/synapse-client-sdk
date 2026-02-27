@@ -27,6 +27,52 @@ export {
   type CreateSolanaToolsOpts,
 } from './tools';
 
+// ── Protocol Tools (Jupiter, Raydium, Metaplex, On-Chain) ─────
+export {
+  // Factories
+  createJupiterTools,
+  createRaydiumTools,
+  createMetaplexTools,
+  createJupiterOnchainTools,
+  createRaydiumOnchainTools,
+  createProtocolTools,
+  // Schemas
+  jupiterMethods,
+  jupiterMethodNames,
+  raydiumMethods,
+  raydiumMethodNames,
+  metaplexMethods,
+  metaplexMethodNames,
+  jupiterOnchainMethods,
+  jupiterOnchainMethodNames,
+  raydiumOnchainMethods,
+  raydiumOnchainMethodNames,
+  // Shared infrastructure
+  ProtocolHttpClient,
+  ProtocolApiError,
+  buildProtocolTools,
+  createMethodRegistry,
+  // Constants
+  JUPITER_API_URL,
+  JUPITER_TOKENS_API_URL,
+  RAYDIUM_API_URL,
+  JUPITER_PROGRAM_IDS,
+  RAYDIUM_PROGRAM_IDS,
+  // Types
+  type ProtocolMethod,
+  type ProtocolToolkit,
+  type ProtocolTool,
+  type ProtocolClientConfig,
+  type CreateProtocolToolsOpts,
+  type JupiterToolsConfig,
+  type RaydiumToolsConfig,
+  type MetaplexToolsConfig,
+  type JupiterOnchainToolsConfig,
+  type RaydiumOnchainToolsConfig,
+  type CreateProtocolToolsConfig,
+  type AllProtocolToolkits,
+} from './tools';
+
 // ── Gateway (Agent Commerce) ──────────────────────────────────
 export {
   // Main orchestrator

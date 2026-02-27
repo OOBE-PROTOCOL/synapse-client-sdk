@@ -1,6 +1,6 @@
 {
   "name": "@oobe-protocol-labs/synapse-client-sdk",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Synapse Client SDK -- Typed Solana RPC gateway with @solana/kit native types, 53 JSON-RPC methods, DAS, WebSocket, gRPC/Geyser parser, signers/wallets, and AI agent tooling (LangChain, x402) | Powered by oobeprotocol.ai (OOBE)",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -51,6 +51,16 @@
       "import": "./dist/esm/ai/index.js",
       "require": "./dist/cjs/ai/index.js"
     },
+    "./ai/tools": {
+      "types": "./dist/esm/ai/tools/index.d.ts",
+      "import": "./dist/esm/ai/tools/index.js",
+      "require": "./dist/cjs/ai/tools/index.js"
+    },
+    "./ai/tools/protocols": {
+      "types": "./dist/esm/ai/tools/protocols/index.d.ts",
+      "import": "./dist/esm/ai/tools/protocols/index.js",
+      "require": "./dist/cjs/ai/tools/protocols/index.js"
+    },
     "./kit": {
       "types": "./dist/esm/kit/index.d.ts",
       "import": "./dist/esm/kit/index.js",
@@ -60,6 +70,41 @@
       "types": "./dist/esm/decoders/index.d.ts",
       "import": "./dist/esm/decoders/index.js",
       "require": "./dist/cjs/decoders/index.js"
+    },
+    "./decoders/token": {
+      "types": "./dist/esm/decoders/token.d.ts",
+      "import": "./dist/esm/decoders/token.js",
+      "require": "./dist/cjs/decoders/token.js"
+    },
+    "./decoders/token-2022": {
+      "types": "./dist/esm/decoders/token-2022.d.ts",
+      "import": "./dist/esm/decoders/token-2022.js",
+      "require": "./dist/cjs/decoders/token-2022.js"
+    },
+    "./decoders/stake": {
+      "types": "./dist/esm/decoders/stake.d.ts",
+      "import": "./dist/esm/decoders/stake.js",
+      "require": "./dist/cjs/decoders/stake.js"
+    },
+    "./decoders/nonce": {
+      "types": "./dist/esm/decoders/nonce.d.ts",
+      "import": "./dist/esm/decoders/nonce.js",
+      "require": "./dist/cjs/decoders/nonce.js"
+    },
+    "./decoders/lookup-table": {
+      "types": "./dist/esm/decoders/lookup-table.d.ts",
+      "import": "./dist/esm/decoders/lookup-table.js",
+      "require": "./dist/cjs/decoders/lookup-table.js"
+    },
+    "./decoders/multisig": {
+      "types": "./dist/esm/decoders/multisig.d.ts",
+      "import": "./dist/esm/decoders/multisig.js",
+      "require": "./dist/cjs/decoders/multisig.js"
+    },
+    "./decoders/layout": {
+      "types": "./dist/esm/decoders/layout.d.ts",
+      "import": "./dist/esm/decoders/layout.js",
+      "require": "./dist/cjs/decoders/layout.js"
     },
     "./accounts": {
       "types": "./dist/esm/accounts/index.d.ts",
