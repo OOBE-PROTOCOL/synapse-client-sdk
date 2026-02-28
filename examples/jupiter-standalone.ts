@@ -29,7 +29,7 @@ async function main() {
   // ── 2. getTokenList — fix #21 (now routes to /tokens/v2/tag?query=verified)
   try {
     const tokens = await jupiter.toolMap.getTokenList.invoke({ query: 'verified' });
-    const parsed = JSON.parse(tokens);
+    const parsed = JSON.parse(tokens as unknown as string);
     console.log(`Token list: ${parsed.length} verified tokens loaded`);
   } catch (err) {
     console.error('getTokenList error (throwOnError works!):', err);

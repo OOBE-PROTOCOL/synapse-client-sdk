@@ -75,6 +75,14 @@ export {
   type RaydiumOnchainToolsConfig,
 } from './raydium-onchain';
 
+// ── Solana Native Programs ─────────────────────────────────────
+export {
+  createSolanaProgramsTools,
+  solanaProgramsMethods,
+  solanaProgramsMethodNames,
+  type SolanaProgramsToolsConfig,
+} from './solana-programs';
+
 /* ═══════════════════════════════════════════════════════════════
  *  Super-factory — createProtocolTools()
  *
@@ -83,12 +91,13 @@ export {
  *  `allTools` array for agent consumption.
  * ═══════════════════════════════════════════════════════════════ */
 
-import type { SynapseClient } from '../../../core/client';
+import type { SynapseClientLike } from '../../../core/client';
 import { createJupiterTools, type JupiterToolsConfig } from './jupiter';
 import { createRaydiumTools, type RaydiumToolsConfig } from './raydium';
 import { createMetaplexTools, type MetaplexToolsConfig } from './metaplex';
 import { createJupiterOnchainTools, type JupiterOnchainToolsConfig } from './jupiter-onchain';
 import { createRaydiumOnchainTools, type RaydiumOnchainToolsConfig } from './raydium-onchain';
+import { createSolanaProgramsTools, type SolanaProgramsToolsConfig } from './solana-programs';
 import type { ProtocolToolkit, ProtocolTool, CreateProtocolToolsOpts } from './shared';
 
 /**
@@ -107,6 +116,8 @@ export interface CreateProtocolToolsConfig {
   jupiterOnchain?: JupiterOnchainToolsConfig | false;
   /** Raydium on-chain config — pass `false` to skip Raydium on-chain tools entirely. */
   raydiumOnchain?: RaydiumOnchainToolsConfig | false;
+  /** Solana native programs config — pass `false` to skip instruction-building tools entirely. */
+  solanaPrograms?: SolanaProgramsToolsConfig & CreateProtocolToolsOpts | false;
 }
 
 /**
@@ -125,6 +136,8 @@ export interface AllProtocolToolkits {
   jupiterOnchain?: ProtocolToolkit;
   /** Raydium on-chain toolkit (undefined if disabled). */
   raydiumOnchain?: ProtocolToolkit;
+  /** Solana native programs toolkit (undefined if disabled). */
+  solanaPrograms?: ProtocolToolkit;
   /** Flat array of ALL tools across all enabled protocols — pass directly to an agent. */
   allTools: ProtocolTool[];
   /** Total number of tools. */
@@ -136,7 +149,7 @@ export interface AllProtocolToolkits {
 /**
  * @description Create tools for all Solana native protocols in a single call.
  *
- * @param {SynapseClient} client - Initialised SynapseClient (needed for Metaplex DAS)
+ * @param {SynapseClientLike} client - Object providing an HttpTransport (e.g. SynapseClient — needed for Metaplex DAS, Jupiter/Raydium on-chain)
  * @param {CreateProtocolToolsConfig} [config={}] - Per-protocol configuration
  * @returns {AllProtocolToolkits} Object with per-protocol toolkits and merged allTools array
  *
@@ -159,7 +172,7 @@ export interface AllProtocolToolkits {
  * @since 1.0.0
  */
 export function createProtocolTools(
-  client: SynapseClient,
+  client: SynapseClientLike,
   config: CreateProtocolToolsConfig = {},
 ): AllProtocolToolkits {
   const allTools: ProtocolTool[] = [];
@@ -170,6 +183,7 @@ export function createProtocolTools(
   let metaplex: ProtocolToolkit | undefined;
   let jupiterOnchain: ProtocolToolkit | undefined;
   let raydiumOnchain: ProtocolToolkit | undefined;
+  let solanaPrograms: ProtocolToolkit | undefined;
 
   // Jupiter
   if (config.jupiter !== false) {
@@ -206,12 +220,20 @@ export function createProtocolTools(
     protocolSummary.raydiumOnchain = raydiumOnchain.tools.length;
   }
 
+  // Solana Native Programs (instruction builders)
+  if (config.solanaPrograms !== false) {
+    solanaPrograms = createSolanaProgramsTools(config.solanaPrograms ?? {});
+    allTools.push(...solanaPrograms.tools);
+    protocolSummary.solanaPrograms = solanaPrograms.tools.length;
+  }
+
   return {
     jupiter,
     raydium,
     metaplex,
     jupiterOnchain,
     raydiumOnchain,
+    solanaPrograms,
     allTools,
     totalToolCount: allTools.length,
     protocolSummary,

@@ -249,8 +249,8 @@ describe('Shared Infrastructure', () => {
  * ═══════════════════════════════════════════════════════════════ */
 
 describe('Jupiter Schema Registry', () => {
-  it('registers exactly 21 methods', () => {
-    expect(jupiterMethods).toHaveLength(21);
+  it('registers exactly 22 methods', () => {
+    expect(jupiterMethods).toHaveLength(22);
   });
 
   it('all methods have required fields', () => {
@@ -331,10 +331,10 @@ describe('Jupiter Schema Registry', () => {
  * ═══════════════════════════════════════════════════════════════ */
 
 describe('Jupiter Tool Factory', () => {
-  it('creates tools for all 21 methods', () => {
+  it('creates tools for all 22 methods', () => {
     const fetchMock = mockFetch({});
     const toolkit = createJupiterTools({ fetch: fetchMock });
-    expect(toolkit.tools).toHaveLength(21);
+    expect(toolkit.tools).toHaveLength(22);
     expect(toolkit.protocol).toBe('jupiter');
   });
 
@@ -365,7 +365,7 @@ describe('Jupiter Tool Factory', () => {
   it('exclude filter removes tools', () => {
     const fetchMock = mockFetch({});
     const toolkit = createJupiterTools({ fetch: fetchMock, exclude: ['getTokenInfo'] });
-    expect(toolkit.tools).toHaveLength(20);
+    expect(toolkit.tools).toHaveLength(21);
     expect(toolkit.toolMap.getTokenInfo).toBeUndefined();
   });
 
@@ -409,6 +409,194 @@ describe('Jupiter Tool Factory', () => {
     const parsed = JSON.parse(result as string);
     expect(parsed.error).toBe(true);
     expect(parsed.protocol).toBe('jupiter');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+ *  3b. Jupiter smartSwap Compound Tool
+ * ═══════════════════════════════════════════════════════════════ */
+
+describe('Jupiter smartSwap Compound Tool', () => {
+  /** Mock fetch that returns different responses for quote vs swap-instructions. */
+  function mockSmartSwapFetch() {
+    const quoteResponse = {
+      inputMint: 'So11111111111111111111111111111111111111112',
+      outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      inAmount: '1000000000',
+      outAmount: '150000000',
+      otherAmountThreshold: '149250000',
+      swapMode: 'ExactIn',
+      slippageBps: 50,
+      priceImpactPct: '0.01',
+      routePlan: [
+        {
+          swapInfo: {
+            ammKey: 'Amm111111111111111111111111111111111111111',
+            label: 'Raydium',
+            inputMint: 'So11111111111111111111111111111111111111112',
+            outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+            inAmount: '1000000000',
+            outAmount: '150000000',
+            feeAmount: '1500000',
+            feeMint: 'So11111111111111111111111111111111111111112',
+          },
+          percent: 100,
+        },
+      ],
+    };
+
+    const swapInstructionsResponse = {
+      tokenLedgerInstruction: null,
+      computeBudgetInstructions: [{ programId: 'ComputeBudget111111111111111111111111111111' }],
+      setupInstructions: [{ programId: 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL' }],
+      swapInstruction: { programId: 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4' },
+      cleanupInstruction: null,
+      addressLookupTableAddresses: ['LUT111111111111111111111111111111111111111'],
+    };
+
+    let callCount = 0;
+    return vi.fn().mockImplementation((url: string) => {
+      callCount++;
+      const isQuote = url.includes('/swap/v1/quote');
+      const body = isQuote ? quoteResponse : swapInstructionsResponse;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(body),
+        text: () => Promise.resolve(JSON.stringify(body)),
+      });
+    });
+  }
+
+  it('smartSwap is registered in the method list', () => {
+    expect(jupiterMethodNames).toContain('smartSwap');
+    const method = jupiterMethods.find(m => m.name === 'smartSwap');
+    expect(method).toBeDefined();
+    expect(method!.protocol).toBe('jupiter');
+    expect(method!.description).toContain('compound tool');
+  });
+
+  it('smartSwap tool exists in toolkit', () => {
+    const fetchMock = mockSmartSwapFetch();
+    const toolkit = createJupiterTools({ fetch: fetchMock });
+    expect(toolkit.toolMap.smartSwap).toBeDefined();
+  });
+
+  it('smartSwap chains quote → swap-instructions and returns structured result', async () => {
+    const fetchMock = mockSmartSwapFetch();
+    const toolkit = createJupiterTools({ fetch: fetchMock });
+
+    const result = await toolkit.toolMap.smartSwap.invoke({
+      inputMint: 'So11111111111111111111111111111111111111112',
+      outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      amount: '1000000000',
+      userPublicKey: 'Wallet1111111111111111111111111111111111111',
+      slippageBps: 50,
+    });
+
+    const parsed = JSON.parse(result as string);
+
+    // Verify two API calls were made (quote GET + swap-instructions POST)
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // First call: quote
+    const quoteUrl = fetchMock.mock.calls[0][0] as string;
+    expect(quoteUrl).toContain('/swap/v1/quote');
+
+    // Second call: swap-instructions
+    const swapUrl = fetchMock.mock.calls[1][0] as string;
+    expect(swapUrl).toContain('/swap/v1/swap-instructions');
+    const swapOpts = fetchMock.mock.calls[1][1] as { method: string };
+    expect(swapOpts.method).toBe('POST');
+
+    // Verify result structure
+    expect(parsed).toHaveProperty('quote');
+    expect(parsed).toHaveProperty('instructions');
+    expect(parsed).toHaveProperty('summary');
+
+    // Verify quote data
+    expect(parsed.quote.inAmount).toBe('1000000000');
+    expect(parsed.quote.outAmount).toBe('150000000');
+    expect(parsed.quote.routePlan).toHaveLength(1);
+
+    // Verify instructions
+    expect(parsed.instructions.swapInstruction).toBeDefined();
+    expect(parsed.instructions.computeBudgetInstructions).toHaveLength(1);
+    expect(parsed.instructions.setupInstructions).toHaveLength(1);
+    expect(parsed.instructions.addressLookupTableAddresses).toHaveLength(1);
+
+    // Verify summary
+    expect(parsed.summary.inputToken).toBe('So11111111111111111111111111111111111111112');
+    expect(parsed.summary.outputToken).toBe('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+    expect(parsed.summary.inputAmount).toBe('1000000000');
+    expect(parsed.summary.expectedOutputAmount).toBe('150000000');
+    expect(parsed.summary.minimumOutputAmount).toBe('149250000');
+    expect(parsed.summary.routeHops).toBe(1);
+    expect(parsed.summary.instructionCount).toBe(3); // 1 computeBudget + 1 setup + 1 swap
+    expect(parsed.summary.addressLookupTableCount).toBe(1);
+  });
+
+  it('smartSwap passes optional params to quote request', async () => {
+    const fetchMock = mockSmartSwapFetch();
+    const toolkit = createJupiterTools({ fetch: fetchMock });
+
+    await toolkit.toolMap.smartSwap.invoke({
+      inputMint: 'SOL',
+      outputMint: 'USDC',
+      amount: '1000',
+      userPublicKey: 'Wallet111',
+      slippageBps: 100,
+      swapMode: 'ExactIn',
+      onlyDirectRoutes: true,
+      dynamicSlippage: true,
+    });
+
+    // Verify quote URL contains the optional params
+    const quoteUrl = fetchMock.mock.calls[0][0] as string;
+    expect(quoteUrl).toContain('slippageBps=100');
+    expect(quoteUrl).toContain('swapMode=ExactIn');
+    expect(quoteUrl).toContain('onlyDirectRoutes=true');
+    expect(quoteUrl).toContain('dynamicSlippage=true');
+  });
+
+  it('smartSwap passes userPublicKey to swap-instructions body', async () => {
+    const fetchMock = mockSmartSwapFetch();
+    const toolkit = createJupiterTools({ fetch: fetchMock });
+
+    await toolkit.toolMap.smartSwap.invoke({
+      inputMint: 'SOL',
+      outputMint: 'USDC',
+      amount: '1000',
+      userPublicKey: 'MyWallet123',
+    });
+
+    // Verify swap-instructions POST body
+    const swapOpts = fetchMock.mock.calls[1][1] as { body: string };
+    const body = JSON.parse(swapOpts.body);
+    expect(body.userPublicKey).toBe('MyWallet123');
+    expect(body.quoteResponse).toBeDefined();
+    expect(body.quoteResponse.inAmount).toBe('1000000000');
+  });
+
+  it('smartSwap returns error JSON on API failure (never throws)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('Internal Server Error'),
+    });
+    const toolkit = createJupiterTools({ fetch: fetchMock });
+
+    const result = await toolkit.toolMap.smartSwap.invoke({
+      inputMint: 'SOL',
+      outputMint: 'USDC',
+      amount: '1000',
+      userPublicKey: 'Wallet111',
+    });
+
+    const parsed = JSON.parse(result as string);
+    expect(parsed.error).toBe(true);
+    expect(parsed.protocol).toBe('jupiter');
+    expect(parsed.method).toBe('smartSwap');
   });
 });
 
@@ -704,10 +892,12 @@ describe('createProtocolTools (super-factory)', () => {
     expect(result.jupiter).toBeDefined();
     expect(result.raydium).toBeDefined();
     expect(result.metaplex).toBeDefined();
-    expect(result.totalToolCount).toBe(21 + 16 + 12); // 49
-    expect(result.protocolSummary.jupiter).toBe(21);
+    expect(result.solanaPrograms).toBeDefined();
+    expect(result.totalToolCount).toBe(22 + 16 + 12 + 16); // 66
+    expect(result.protocolSummary.jupiter).toBe(22);
     expect(result.protocolSummary.raydium).toBe(16);
     expect(result.protocolSummary.metaplex).toBe(12);
+    expect(result.protocolSummary.solanaPrograms).toBe(16);
   });
 
   it('can disable individual protocols with false', () => {
@@ -720,13 +910,14 @@ describe('createProtocolTools (super-factory)', () => {
       metaplex: false,
       jupiterOnchain: false,
       raydiumOnchain: false,
+      solanaPrograms: false,
     });
 
     expect(result.jupiter).toBeDefined();
     expect(result.raydium).toBeUndefined();
     expect(result.metaplex).toBeUndefined();
-    expect(result.totalToolCount).toBe(21);
-    expect(result.allTools).toHaveLength(21);
+    expect(result.totalToolCount).toBe(22);
+    expect(result.allTools).toHaveLength(22);
   });
 
   it('allTools is a flat array of all tools', () => {
@@ -739,6 +930,7 @@ describe('createProtocolTools (super-factory)', () => {
       metaplex: { include: ['getAsset'] },
       jupiterOnchain: false,
       raydiumOnchain: false,
+      solanaPrograms: false,
     });
 
     expect(result.allTools).toHaveLength(3);
@@ -766,8 +958,8 @@ describe('Cross-protocol consistency', () => {
     expect(new Set(prefixed).size).toBe(prefixed.length);
   });
 
-  it('total method count is 49 (21 + 16 + 12)', () => {
-    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length).toBe(49);
+  it('total method count is 50 (22 + 16 + 12)', () => {
+    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length).toBe(50);
   });
 
   it('every method across all protocols has a description', () => {

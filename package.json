@@ -1,6 +1,6 @@
 {
   "name": "@oobe-protocol-labs/synapse-client-sdk",
-  "version": "1.0.8",
+  "version": "1.2.0",
   "description": "Synapse Client SDK -- Typed Solana RPC gateway with @solana/kit native types, 53 JSON-RPC methods, DAS, WebSocket, gRPC/Geyser parser, signers/wallets, and AI agent tooling (LangChain, x402) | Powered by oobeprotocol.ai (OOBE)",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -115,6 +115,46 @@
       "types": "./dist/esm/accounts/index.d.ts",
       "import": "./dist/esm/accounts/index.js",
       "require": "./dist/cjs/accounts/index.js"
+    },
+    "./programs": {
+      "types": "./dist/esm/programs/index.d.ts",
+      "import": "./dist/esm/programs/index.js",
+      "require": "./dist/cjs/programs/index.js"
+    },
+    "./programs/system": {
+      "types": "./dist/esm/programs/system.d.ts",
+      "import": "./dist/esm/programs/system.js",
+      "require": "./dist/cjs/programs/system.js"
+    },
+    "./programs/spl-token": {
+      "types": "./dist/esm/programs/spl-token.d.ts",
+      "import": "./dist/esm/programs/spl-token.js",
+      "require": "./dist/cjs/programs/spl-token.js"
+    },
+    "./programs/associated-token": {
+      "types": "./dist/esm/programs/associated-token.d.ts",
+      "import": "./dist/esm/programs/associated-token.js",
+      "require": "./dist/cjs/programs/associated-token.js"
+    },
+    "./programs/memo": {
+      "types": "./dist/esm/programs/memo.d.ts",
+      "import": "./dist/esm/programs/memo.js",
+      "require": "./dist/cjs/programs/memo.js"
+    },
+    "./programs/compute-budget": {
+      "types": "./dist/esm/programs/compute-budget.d.ts",
+      "import": "./dist/esm/programs/compute-budget.js",
+      "require": "./dist/cjs/programs/compute-budget.js"
+    },
+    "./programs/types": {
+      "types": "./dist/esm/programs/types.d.ts",
+      "import": "./dist/esm/programs/types.js",
+      "require": "./dist/cjs/programs/types.js"
+    },
+    "./context": {
+      "types": "./dist/esm/context/index.d.ts",
+      "import": "./dist/esm/context/index.js",
+      "require": "./dist/cjs/context/index.js"
     }
   },
   "files": [

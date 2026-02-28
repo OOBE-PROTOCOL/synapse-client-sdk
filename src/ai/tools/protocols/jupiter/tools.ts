@@ -2,7 +2,8 @@
  * @module ai/tools/protocols/jupiter/tools
  * @description Jupiter Protocol — LangChain tool factory.
  *
- * Creates 21 executable tools bound to the Jupiter REST API:
+ * Creates 22 executable tools bound to the Jupiter REST API,
+ * including the `smartSwap` compound tool that chains quote → swap-instructions:
  * ```ts
  * const jupiter = createJupiterTools({ apiKey: '...' });
  * agent.tools.push(...jupiter.tools);
@@ -72,6 +73,11 @@ function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHtt
     const verb = method.httpMethod ?? 'GET';
     const path = method.path ?? `/${method.name}`;
 
+    // ── smartSwap: compound tool (quote → swap-instructions) ──
+    if (method.name === 'smartSwap') {
+      return executeSmartSwap(http, input);
+    }
+
     // ── getTokenList: route to tokensApiUrl /tokens/v2/tag ────
     if (method.name === 'getTokenList') {
       return tokensHttp.get(path, input);
@@ -92,6 +98,101 @@ function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHtt
 }
 
 /* ═══════════════════════════════════════════════════════════════
+ *  smartSwap — compound executor
+ *
+ *  1. Fetch a quote via GET /swap/v1/quote
+ *  2. POST the quote + user params to /swap/v1/swap-instructions
+ *  3. Return { quote, instructions, summary }
+ * ═══════════════════════════════════════════════════════════════ */
+
+async function executeSmartSwap(
+  http: ProtocolHttpClient,
+  input: Record<string, unknown>,
+): Promise<unknown> {
+  const {
+    inputMint,
+    outputMint,
+    amount,
+    userPublicKey,
+    slippageBps,
+    swapMode,
+    onlyDirectRoutes,
+    dynamicSlippage,
+    asLegacyTransaction,
+    wrapAndUnwrapSol,
+    destinationTokenAccount,
+    computeUnitPriceMicroLamports,
+    dynamicComputeUnitLimit,
+    maxAccounts,
+    platformFeeBps,
+    feeAccount,
+    restrictIntermediateTokens,
+  } = input;
+
+  // ── Step 1: Get quote ──────────────────────────────────────
+  const quoteParams: Record<string, unknown> = {
+    inputMint,
+    outputMint,
+    amount,
+  };
+  if (slippageBps !== undefined) quoteParams.slippageBps = slippageBps;
+  if (swapMode !== undefined) quoteParams.swapMode = swapMode;
+  if (onlyDirectRoutes !== undefined) quoteParams.onlyDirectRoutes = onlyDirectRoutes;
+  if (dynamicSlippage !== undefined) quoteParams.dynamicSlippage = dynamicSlippage;
+  if (asLegacyTransaction !== undefined) quoteParams.asLegacyTransaction = asLegacyTransaction;
+  if (maxAccounts !== undefined) quoteParams.maxAccounts = maxAccounts;
+  if (platformFeeBps !== undefined) quoteParams.platformFeeBps = platformFeeBps;
+  if (restrictIntermediateTokens !== undefined) quoteParams.restrictIntermediateTokens = restrictIntermediateTokens;
+
+  const quoteResponse = await http.get('/swap/v1/quote', quoteParams) as Record<string, unknown>;
+
+  // ── Step 2: Get swap instructions ──────────────────────────
+  const swapParams: Record<string, unknown> = {
+    userPublicKey,
+    quoteResponse,
+  };
+  if (wrapAndUnwrapSol !== undefined) swapParams.wrapAndUnwrapSol = wrapAndUnwrapSol;
+  if (destinationTokenAccount !== undefined) swapParams.destinationTokenAccount = destinationTokenAccount;
+  if (computeUnitPriceMicroLamports !== undefined) swapParams.computeUnitPriceMicroLamports = computeUnitPriceMicroLamports;
+  if (dynamicComputeUnitLimit !== undefined) swapParams.dynamicComputeUnitLimit = dynamicComputeUnitLimit;
+  if (asLegacyTransaction !== undefined) swapParams.asLegacyTransaction = asLegacyTransaction;
+  if (feeAccount !== undefined) swapParams.feeAccount = feeAccount;
+  if (dynamicSlippage !== undefined) swapParams.dynamicSlippage = dynamicSlippage;
+
+  const instructions = await http.post('/swap/v1/swap-instructions', swapParams) as Record<string, unknown>;
+
+  // ── Step 3: Build summary ──────────────────────────────────
+  const routePlan = (quoteResponse.routePlan as unknown[]) ?? [];
+  const setupIxs = (instructions.setupInstructions as unknown[]) ?? [];
+  const computeBudgetIxs = (instructions.computeBudgetInstructions as unknown[]) ?? [];
+  const otherIxs = (instructions.otherInstructions as unknown[]) ?? [];
+  const lookupTables = (instructions.addressLookupTableAddresses as string[]) ?? [];
+
+  const instructionCount =
+    computeBudgetIxs.length +
+    setupIxs.length +
+    (instructions.tokenLedgerInstruction ? 1 : 0) +
+    1 + // swapInstruction
+    (instructions.cleanupInstruction ? 1 : 0) +
+    otherIxs.length;
+
+  const summary = {
+    inputToken: quoteResponse.inputMint,
+    outputToken: quoteResponse.outputMint,
+    inputAmount: quoteResponse.inAmount,
+    expectedOutputAmount: quoteResponse.outAmount,
+    minimumOutputAmount: quoteResponse.otherAmountThreshold,
+    priceImpactPct: quoteResponse.priceImpactPct,
+    slippageBps: quoteResponse.slippageBps,
+    routeHops: routePlan.length,
+    instructionCount,
+    addressLookupTableCount: lookupTables.length,
+  };
+
+  return { quote: quoteResponse, instructions, summary };
+}
+
+/* ═══════════════════════════════════════════════════════════════
  *  createJupiterTools()
  *
  *  Public factory — the single entry-point for consumers.
@@ -101,7 +202,7 @@ function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHtt
  * @description Create LangChain-compatible tools for Jupiter Protocol.
  *
  * @param {JupiterToolsConfig & CreateProtocolToolsOpts} [config={}] - Jupiter API config and tool options
- * @returns {ProtocolToolkit} Toolkit with 21 Jupiter tools
+ * @returns {ProtocolToolkit} Toolkit with 22 Jupiter tools (including smartSwap compound tool)
  *
  * @example
  * ```ts

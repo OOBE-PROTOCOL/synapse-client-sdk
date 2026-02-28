@@ -21,7 +21,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { SynapseClient } from '../../core/client';
+import type { SynapseClientLike } from '../../core/client';
 import type { HttpTransport } from '../../core/transport';
 import type {
   AgentId,
@@ -140,7 +140,7 @@ export class IntentVerificationError extends GatewayError {
  */
 export class AgentGateway {
   /** The Synapse RPC client powering the upstream calls */
-  private readonly client: SynapseClient;
+  private readonly client: SynapseClientLike;
   /** The raw transport (shortcut for tools) */
   private readonly transport: HttpTransport;
   /** Gateway configuration */
@@ -167,11 +167,11 @@ export class AgentGateway {
 
   /**
    * @description Create a new AgentGateway instance.
-   * @param {SynapseClient} client - The Synapse RPC client powering upstream calls
+   * @param {SynapseClientLike} client - Object providing an HttpTransport (e.g. SynapseClient)
    * @param {GatewayConfig} config - Gateway configuration including identity, tiers, and x402 settings
    * @since 1.0.0
    */
-  constructor(client: SynapseClient, config: GatewayConfig) {
+  constructor(client: SynapseClientLike, config: GatewayConfig) {
     this.client = client;
     this.transport = client.transport;
     this.config = config;
@@ -918,7 +918,7 @@ export class AgentGateway {
 /**
  * @description Create an AgentGateway with sensible defaults.
  *
- * @param {SynapseClient} client - Initialized SynapseClient instance
+ * @param {SynapseClientLike} client - Object providing an HttpTransport (e.g. SynapseClient)
  * @param {GatewayConfig} config - Gateway configuration
  * @returns {AgentGateway} A fully configured AgentGateway instance
  *
@@ -933,7 +933,7 @@ export class AgentGateway {
  * @since 1.0.0
  */
 export function createAgentGateway(
-  client: SynapseClient,
+  client: SynapseClientLike,
   config: GatewayConfig,
 ): AgentGateway {
   return new AgentGateway(client, config);

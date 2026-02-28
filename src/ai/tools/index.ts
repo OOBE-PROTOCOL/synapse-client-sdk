@@ -20,7 +20,7 @@
  * @since 1.0.0
  */
 import { tool, type DynamicStructuredTool } from '@langchain/core/tools';
-import type { SynapseClient } from '../../core/client';
+import type { SynapseClientLike } from '../../core/client';
 import type { HttpTransport } from '../../core/transport';
 import { agentRpcMethods, type AgentRpcMethod } from './zod';
 
@@ -35,6 +35,7 @@ export {
   createMetaplexTools,
   createJupiterOnchainTools,
   createRaydiumOnchainTools,
+  createSolanaProgramsTools,
   createProtocolTools,
   // Schemas
   jupiterMethods,
@@ -47,6 +48,8 @@ export {
   jupiterOnchainMethodNames,
   raydiumOnchainMethods,
   raydiumOnchainMethodNames,
+  solanaProgramsMethods,
+  solanaProgramsMethodNames,
   // Shared infrastructure
   ProtocolHttpClient,
   ProtocolApiError,
@@ -68,6 +71,7 @@ export {
   type MetaplexToolsConfig,
   type JupiterOnchainToolsConfig,
   type RaydiumOnchainToolsConfig,
+  type SolanaProgramsToolsConfig,
   type CreateProtocolToolsConfig,
   type AllProtocolToolkits,
 } from './protocols';
@@ -405,13 +409,13 @@ export interface CreateSolanaToolsOpts {
  * @description Factory that hydrates every registered Zod schema into a
  * real LangChain tool bound to a live SynapseClient transport.
  *
- * @param {SynapseClient} client - Initialised SynapseClient (provides HttpTransport)
+ * @param {SynapseClientLike} client - Object providing an HttpTransport (e.g. SynapseClient)
  * @param {CreateSolanaToolsOpts} [opts={}] - Optional overrides for prefix, include/exclude, and JSON formatting
  * @returns {SolanaToolkit} Object with `tools` array and `toolMap` record
  * @since 1.0.0
  */
 export function createExecutableSolanaTools(
-  client: SynapseClient,
+  client: SynapseClientLike,
   opts: CreateSolanaToolsOpts = {},
 ): SolanaToolkit {
   const {

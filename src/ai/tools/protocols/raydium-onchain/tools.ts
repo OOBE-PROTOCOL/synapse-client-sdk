@@ -21,7 +21,7 @@ import {
   type CreateProtocolToolsOpts,
 } from '../shared';
 import { raydiumOnchainMethods } from './schemas';
-import type { SynapseClient } from '../../../../core/client';
+import type { SynapseClientLike } from '../../../../core/client';
 import type { HttpTransport } from '../../../../core/transport';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -446,7 +446,7 @@ function executeResolvePrograms(): unknown {
  * ═══════════════════════════════════════════════════════════════ */
 
 /**
- * @description Raydium on-chain specific config (tool options — transport comes from SynapseClient).
+ * @description Raydium on-chain specific config (tool options — transport comes from SynapseClientLike).
  * @since 1.1.0
  */
 export type RaydiumOnchainToolsConfig = CreateProtocolToolsOpts;
@@ -459,7 +459,7 @@ export type RaydiumOnchainToolsConfig = CreateProtocolToolsOpts;
  * Use them to inspect pool states, LP positions, farm positions, and any
  * Raydium program account in real-time.
  *
- * @param {SynapseClient} client - Initialised SynapseClient (provides HttpTransport)
+ * @param {SynapseClientLike} client - Object providing an HttpTransport (e.g. SynapseClient)
  * @param {RaydiumOnchainToolsConfig} [opts={}] - Tool creation options
  * @returns {ProtocolToolkit} Toolkit with 10 Raydium on-chain tools
  *
@@ -478,7 +478,7 @@ export type RaydiumOnchainToolsConfig = CreateProtocolToolsOpts;
  * @since 1.1.0
  */
 export function createRaydiumOnchainTools(
-  client: SynapseClient,
+  client: SynapseClientLike,
   opts: RaydiumOnchainToolsConfig = {},
 ): ProtocolToolkit {
   const execute = createRaydiumOnchainExecutor(client.transport);
