@@ -20,7 +20,7 @@ import {
   type CreateProtocolToolsOpts,
 } from '../shared';
 import { metaplexMethods } from './schemas';
-import type { SynapseClient } from '../../../../core/client';
+import type { SynapseClientLike } from '../../../../core/client';
 import type { HttpTransport } from '../../../../core/transport';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -156,7 +156,7 @@ async function executeResolveCollection(
  * ═══════════════════════════════════════════════════════════════ */
 
 /**
- * @description Metaplex-specific config (just tool options — transport comes from SynapseClient).
+ * @description Metaplex-specific config (just tool options — transport comes from SynapseClientLike).
  * @since 1.0.0
  */
 export type MetaplexToolsConfig = CreateProtocolToolsOpts;
@@ -167,7 +167,10 @@ export type MetaplexToolsConfig = CreateProtocolToolsOpts;
  * Unlike Jupiter/Raydium, Metaplex tools use the Solana RPC transport
  * (DAS is an extension of the JSON-RPC interface).
  *
- * @param {SynapseClient} client - Initialised SynapseClient (provides HttpTransport)
+ * Accepts any object with a `transport` property — both the full
+ * `SynapseClient` and a minimal `{ transport }` object work.
+ *
+ * @param {SynapseClientLike} client - Object providing an HttpTransport (e.g. SynapseClient)
  * @param {MetaplexToolsConfig} [opts={}] - Tool creation options
  * @returns {ProtocolToolkit} Toolkit with 12 Metaplex DAS tools
  *
@@ -181,7 +184,7 @@ export type MetaplexToolsConfig = CreateProtocolToolsOpts;
  * @since 1.0.0
  */
 export function createMetaplexTools(
-  client: SynapseClient,
+  client: SynapseClientLike,
   opts: MetaplexToolsConfig = {},
 ): ProtocolToolkit {
   const execute = createMetaplexExecutor(client.transport);

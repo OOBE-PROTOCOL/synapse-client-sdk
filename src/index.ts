@@ -52,6 +52,12 @@ export * from './decoders/index';
 // ── Typed account fetchers (RPC + decode in one call) ──────────
 export * from './accounts/index';
 
+// ── Native program instruction encoders ────────────────────────
+export * from './programs/index';
+
+// ── Context provider (IoC container, DI, hooks) ───────────────
+export * from './context/index';
+
 // ── Convenience factory ────────────────────────────────────────
 import { SynapseClient, type SynapseClientConfig } from './core/client';
 /**
@@ -65,7 +71,8 @@ import { SynapseClient, type SynapseClientConfig } from './core/client';
  * ```ts
  * const client = createSynapse({ endpoint: 'https://rpc.synapse.com', apiKey: 'sk-…' });
  * ```
- */export function createSynapse(config: SynapseClientConfig): SynapseClient {
+ */
+export function createSynapse(config: SynapseClientConfig): SynapseClient {
   return new SynapseClient(config);
 }
 

@@ -61,7 +61,38 @@ export interface SynapseClientConfig extends TransportConfig {
   grpcEndpoint?: string;
 }
 
-export class SynapseClient {
+/**
+ * Minimal structural interface that any object with a `transport` property satisfies.
+ *
+ * Protocol tool factories (`createMetaplexTools`, `createJupiterOnchainTools`,
+ * `createRaydiumOnchainTools`, `createProtocolTools`) accept this type instead
+ * of the full {@link SynapseClient} class, so consumers are never forced to
+ * match every property / getter the SDK adds in future versions.
+ *
+ * Both the concrete `SynapseClient` class and a plain `{ transport }` object
+ * satisfy this interface — no `as any` cast needed.
+ *
+ * @since 1.0.8
+ *
+ * @example
+ * ```ts
+ * import { SynapseClient, type SynapseClientLike } from '@oobe-protocol-labs/synapse-client-sdk';
+ *
+ * // Full client works as before:
+ * const client = new SynapseClient({ endpoint: '...' });
+ * const metaplex = createMetaplexTools(client);
+ *
+ * // Minimal object also works — useful in tests or across versions:
+ * const lite: SynapseClientLike = { transport: client.transport };
+ * const tools = createMetaplexTools(lite);
+ * ```
+ */
+export interface SynapseClientLike {
+  /** The HTTP transport used for RPC calls. */
+  readonly transport: HttpTransport;
+}
+
+export class SynapseClient implements SynapseClientLike {
   readonly transport: HttpTransport;
   private readonly cfg: SynapseClientConfig;
 

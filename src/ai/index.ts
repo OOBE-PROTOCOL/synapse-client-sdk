@@ -35,6 +35,7 @@ export {
   createMetaplexTools,
   createJupiterOnchainTools,
   createRaydiumOnchainTools,
+  createSolanaProgramsTools,
   createProtocolTools,
   // Schemas
   jupiterMethods,
@@ -47,6 +48,8 @@ export {
   jupiterOnchainMethodNames,
   raydiumOnchainMethods,
   raydiumOnchainMethodNames,
+  solanaProgramsMethods,
+  solanaProgramsMethodNames,
   // Shared infrastructure
   ProtocolHttpClient,
   ProtocolApiError,
@@ -68,6 +71,7 @@ export {
   type MetaplexToolsConfig,
   type JupiterOnchainToolsConfig,
   type RaydiumOnchainToolsConfig,
+  type SolanaProgramsToolsConfig,
   type CreateProtocolToolsConfig,
   type AllProtocolToolkits,
 } from './tools';
