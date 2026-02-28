@@ -7,6 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] — 2026-02-28
+
+### Added
+
+- **Context Provider System** (`src/context/`) — Full IoC (Inversion of Control) container with
+  dependency injection, scoping, and framework-agnostic hooks. Enables components to access SDK
+  services (RPC, DAS, WebSocket, Programs, AI Tools) through a unified context.
+  - `SynapseContext` — Core container with `register()`, `resolve()`, `has()`, `createScope()`,
+    `dispose()`, interceptor middleware, and event bus.
+  - `createSynapseContext(config, opts?)` — Factory that auto-wires all SDK services into the
+    container with pre-defined tokens.
+  - `Tokens` namespace — Pre-defined `ServiceToken<T>` for every SDK module: `RPC`, `DAS`, `WS`,
+    `GRPC`, `TRANSPORT`, `CLIENT`, `ACCOUNTS`, `PROGRAMS`, `DECODERS`, `KIT_RPC`, `KIT_SUBS`.
+  - 6 service lifecycles: `singleton`, `transient`, `scoped`, `value`, `alias`, `asyncFactory`.
+  - 5 provider types: `ValueProvider`, `FactoryProvider`, `ClassProvider`, `AliasProvider`,
+    `AsyncFactoryProvider`.
+  - `createToken<T>(name)` — Type-safe branded token factory.
+  - Error classes: `ServiceNotFoundError`, `CircularDependencyError`, `AsyncProviderError`.
+  - Module system: `ContextModule` interface for registering plugin bundles.
+
+- **Memory-Safe References** (`src/context/refs.ts`) — Reference-counted cross-component service
+  sharing with automatic cleanup. Designed for SDK-grade memory safety.
+  - `ServiceRef<T>` — Strong reference with `acquire()` / `release()` lifecycle, `RefReleasedError`
+    on use-after-free.
+  - `WeakServiceRef<T>` — WeakRef-backed reference that degrades gracefully on GC.
+  - `RefRegistry` — Central registry tracking all live refs with configurable leak detection.
+  - `MemoryGuard` — Background sweep that detects leaked refs and logs/throws diagnostics.
+  - `ServiceBinding<A, B>` — Couples two services with synchronized disposal.
+  - Container integration: `ctx.acquireRef(token)`, `ctx.bind(tokenA, tokenB)`,
+    `ctx.refCount(token)`, `ctx.enableMemoryGuard(config)`.
+
+- **Context Hooks** (`src/context/hooks.ts`) — Framework-agnostic service accessors and adapters.
+  - `setGlobalContext()` / `getContext()` / `tryGetContext()` — Global context management.
+  - `useService(token)` / `tryUseService(token)` — Service resolution from global context.
+  - `createServiceHook(token)` / `createBoundHook(token)` — Composable typed accessor factories.
+  - `useSharedRef(token)` / `withRef(token, fn)` / `withRefAsync(token, fn)` — Safe scoped
+    reference access with automatic release.
+  - `createRefHook(token)` — Creates a reusable ref-acquiring hook for a given token.
+  - `useBoundServices(tokenA, tokenB)` — Acquire two bound services atomically.
+  - `autoWire(ctx)` — Proxy-based lazy service bag for zero-boilerplate access.
+  - `createReactAdapter(config)` — React integration blueprint (Provider, useX hooks).
+  - `createServerMiddleware(config)` — Express/Fastify request-scoped DI middleware.
+
+- **`SynapseClientLike` interface** (`src/core/client.ts`) — Minimal structural interface
+  (`{ readonly transport: HttpTransport }`) that all protocol tool factories now accept.
+  Eliminates the need for `as any` casts when consumer SDK versions differ. Both the full
+  `SynapseClient` class and a plain `{ transport }` object satisfy this interface.
+
+- **Jupiter `smartSwap` compound tool** — All-in-one tool that chains `getQuote` → `swapInstructions`
+  in a single AI agent call. Accepts human-readable params (`inputMint`, `outputMint`, `amount`,
+  `userPublicKey`, `slippageBps`, etc.) and returns `{ quote, instructions, summary }` with a
+  structured summary including route hops, instruction count, price impact, and lookup table count.
+  Jupiter tool count: 21 → **22**.
+
+- **Individual program subpath exports** — Each instruction encoder can now be imported via
+  fine-grained sub-paths for tree-shaking:
+  `./programs/system`, `./programs/spl-token`, `./programs/associated-token`,
+  `./programs/memo`, `./programs/compute-budget`, `./programs/types`.
+
+- **`createSolanaProgramsTools` re-exported** from `./ai` and `./ai/tools` barrels, alongside
+  `solanaProgramsMethods`, `solanaProgramsMethodNames`, and `SolanaProgramsToolsConfig`.
+
+### Fixed
+
+- **Breaking type change in `createMetaplexTools`** — The function previously required the full
+  `SynapseClient` class (which gained an `accounts` getter in v1.0.3), forcing consumers on
+  older versions to use `as any` casts. Now accepts `SynapseClientLike` — any object with a
+  `transport` property.
+- **Same type coupling in 5 other factories** — `createJupiterOnchainTools`,
+  `createRaydiumOnchainTools`, `createProtocolTools`, `createExecutableSolanaTools`, and
+  `AgentGateway` / `createAgentGateway` all migrated from `SynapseClient` to `SynapseClientLike`.
+  Zero `client: SynapseClient` parameter types remain in the SDK public API.
+- **Stale JSDoc `@param` tags** — All `@param {SynapseClient}` annotations updated to
+  `@param {SynapseClientLike}` across 6 files.
+- **Missing barrel exports** — `createSolanaProgramsTools`, `solanaProgramsMethods`,
+  `solanaProgramsMethodNames`, and `SolanaProgramsToolsConfig` were exported from
+  `./ai/tools/protocols` but not re-exported from `./ai/tools` or `./ai`. Now available
+  at all barrel levels.
+- **Minor formatting** — Fixed missing whitespace before `createSynapse` factory in main barrel.
+
+### Changed
+
+- `SynapseClient` now `implements SynapseClientLike`.
+- Jupiter tool count: **21 → 22** (added `smartSwap` compound tool).
+- Total protocol tools: **69 → 70** (22 Jupiter + 16 Raydium + 12 Metaplex + 10 Jupiter
+  On-Chain + 10 Raydium On-Chain).
+- Total protocol tools including Solana Programs: **86** (70 protocol + 16 native programs).
+- Context module tagged `@since 1.2.0`.
+- Test suite: **655 tests** across 14 test files, all passing (77 context + 78 refs + 6 smartSwap
+  + 494 existing).
+
+---
+
 ## [1.0.8] — 2026-02-27
 
 ### Fixed
@@ -289,6 +382,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.2.0]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.8...v1.2.0
 [1.0.8]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.5...v1.0.6

@@ -1,6 +1,6 @@
 /**
  * @module ai/tools/protocols/jupiter/schemas
- * @description Jupiter Protocol — Zod schemas for all 21 Jupiter API methods.
+ * @description Jupiter Protocol — Zod schemas for all 22 Jupiter API methods.
  *
  * Covers:
  *  - Ultra Swap API   (5 methods)
@@ -9,6 +9,7 @@
  *  - Token API V2     (2 methods — list by tag, search)
  *  - Trigger API      (5 methods — limit orders)
  *  - Recurring API    (4 methods — DCA)
+ *  - Compound tools   (1 method — smartSwap)
  *
  * @since 1.0.0
  */
@@ -562,11 +563,97 @@ register(
 );
 
 /* ═══════════════════════════════════════════════════════════════
+ *  7. Smart Swap — compound tool (quote → swap-instructions)
+ *
+ *  Combines getQuote + swapInstructions into a single tool call.
+ *  The executor fetches a quote, then builds swap instructions,
+ *  returning the full pipeline result in one shot.
+ *
+ *  This is the recommended tool for AI agents that need to prepare
+ *  a swap — the LLM provides human-readable params and gets back
+ *  structured instructions ready for signing.
+ * ═══════════════════════════════════════════════════════════════ */
+
+register(
+  'smartSwap',
+  z.object({
+    inputMint: zMint.describe('Source token mint address'),
+    outputMint: zMint.describe('Destination token mint address'),
+    amount: zAmount.describe('Raw token amount to swap (in smallest unit, no decimals)'),
+    userPublicKey: zPubkey.describe('Wallet public key that will sign the transaction'),
+    slippageBps: zSlippage.optional().describe('Slippage tolerance in bps (default: 50 = 0.5%)'),
+    swapMode: z.enum(['ExactIn', 'ExactOut']).optional().describe('Swap mode (default: ExactIn)'),
+    onlyDirectRoutes: z.boolean().optional().describe('Restrict to single-hop routes for lower latency'),
+    dynamicSlippage: z.boolean().optional().describe('Enable dynamic slippage for better execution'),
+    asLegacyTransaction: z.boolean().optional().describe('Return a legacy transaction instead of v0'),
+    wrapAndUnwrapSol: z.boolean().optional().describe('Auto wrap/unwrap SOL (default: true)'),
+    destinationTokenAccount: zPubkey.optional().describe('Custom destination token account (ATA used by default)'),
+    computeUnitPriceMicroLamports: z.number().optional().describe('Priority fee in micro-lamports per compute unit'),
+    dynamicComputeUnitLimit: z.boolean().optional().describe('Use dynamic compute unit limit based on simulation'),
+    maxAccounts: z.number().optional().describe('Max accounts in transaction (default: 64)'),
+    platformFeeBps: z.number().optional().describe('Platform fee in bps for referral revenue'),
+    feeAccount: zPubkey.optional().describe('Fee token account for platform fee collection'),
+    restrictIntermediateTokens: z.boolean().optional().describe('Restrict intermediate tokens to reduce risk'),
+  }),
+  z.object({
+    quote: z.object({
+      inputMint: zMint,
+      outputMint: zMint,
+      inAmount: zAmount,
+      outAmount: zAmount,
+      otherAmountThreshold: zAmount,
+      swapMode: z.string(),
+      slippageBps: z.number(),
+      priceImpactPct: z.string(),
+      routePlan: z.array(z.object({
+        swapInfo: z.object({
+          ammKey: z.string(),
+          label: z.string().optional(),
+          inputMint: zMint,
+          outputMint: zMint,
+          inAmount: zAmount,
+          outAmount: zAmount,
+          feeAmount: zAmount,
+          feeMint: zMint,
+        }),
+        percent: z.number(),
+      })),
+    }),
+    instructions: z.object({
+      tokenLedgerInstruction: z.unknown().nullable(),
+      computeBudgetInstructions: z.array(z.unknown()),
+      setupInstructions: z.array(z.unknown()),
+      swapInstruction: z.unknown(),
+      cleanupInstruction: z.unknown().nullable(),
+      addressLookupTableAddresses: z.array(z.string()),
+      otherInstructions: z.array(z.unknown()).optional(),
+    }),
+    summary: z.object({
+      inputToken: zMint,
+      outputToken: zMint,
+      inputAmount: zAmount,
+      expectedOutputAmount: zAmount,
+      minimumOutputAmount: zAmount,
+      priceImpactPct: z.string(),
+      slippageBps: z.number(),
+      routeHops: z.number(),
+      instructionCount: z.number(),
+      addressLookupTableCount: z.number(),
+    }),
+  }),
+  'Smart Swap — all-in-one compound tool that fetches a quote and builds swap instructions in a single call. ' +
+  'Provide input/output mints, amount, and wallet address to get back a quote, individual swap instructions, ' +
+  'and a human-readable summary. The returned instructions can be assembled into a transaction and signed. ' +
+  'This is the recommended entry-point for AI agents preparing a swap.',
+  { httpMethod: 'GET', path: '/swap/v1/quote' }, // initial request is a quote GET
+);
+
+/* ═══════════════════════════════════════════════════════════════
  *  Export
  * ═══════════════════════════════════════════════════════════════ */
 
 /**
- * @description All 20 registered Jupiter methods with typed Zod schemas.
+ * @description All registered Jupiter methods with typed Zod schemas.
  * @since 1.0.0
  */
 export const jupiterMethods = methods;

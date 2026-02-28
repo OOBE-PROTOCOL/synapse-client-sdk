@@ -21,7 +21,7 @@ import {
   type CreateProtocolToolsOpts,
 } from '../shared';
 import { jupiterOnchainMethods } from './schemas';
-import type { SynapseClient } from '../../../../core/client';
+import type { SynapseClientLike } from '../../../../core/client';
 import type { HttpTransport } from '../../../../core/transport';
 import type { Pubkey, Commitment } from '../../../../core/types';
 import { fetchMint } from '../../../../accounts/token';
@@ -404,7 +404,7 @@ function executeResolvePrograms(): unknown {
  * ═══════════════════════════════════════════════════════════════ */
 
 /**
- * @description Jupiter on-chain specific config (tool options — transport comes from SynapseClient).
+ * @description Jupiter on-chain specific config (tool options — transport comes from SynapseClientLike).
  * @since 1.1.0
  */
 export type JupiterOnchainToolsConfig = CreateProtocolToolsOpts;
@@ -417,7 +417,7 @@ export type JupiterOnchainToolsConfig = CreateProtocolToolsOpts;
  * native binary decoders. Use them to inspect limit orders, DCA positions,
  * perps positions, and any Jupiter program account in real-time.
  *
- * @param {SynapseClient} client - Initialised SynapseClient (provides HttpTransport)
+ * @param {SynapseClientLike} client - Object providing an HttpTransport (e.g. SynapseClient)
  * @param {JupiterOnchainToolsConfig} [opts={}] - Tool creation options
  * @returns {ProtocolToolkit} Toolkit with 10 Jupiter on-chain tools
  *
@@ -436,7 +436,7 @@ export type JupiterOnchainToolsConfig = CreateProtocolToolsOpts;
  * @since 1.1.0
  */
 export function createJupiterOnchainTools(
-  client: SynapseClient,
+  client: SynapseClientLike,
   opts: JupiterOnchainToolsConfig = {},
 ): ProtocolToolkit {
   const execute = createJupiterOnchainExecutor(client.transport);
