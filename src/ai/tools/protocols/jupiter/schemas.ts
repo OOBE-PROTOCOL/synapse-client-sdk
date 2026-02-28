@@ -6,7 +6,7 @@
  *  - Ultra Swap API   (5 methods)
  *  - Metis Swap API   (4 methods)
  *  - Price API v3     (1 method)
- *  - Token API        (2 methods — list, info)
+ *  - Token API V2     (2 methods — list by tag, search)
  *  - Trigger API      (5 methods — limit orders)
  *  - Recurring API    (4 methods — DCA)
  *
@@ -299,55 +299,74 @@ register(
 );
 
 /* ═══════════════════════════════════════════════════════════════
- *  4. Token API — /tokens/v1  (served from tokensApiUrl)
+ *  4. Token API V2 — /tokens/v2/*  (served from tokensApiUrl)
  * ═══════════════════════════════════════════════════════════════ */
 
 register(
   'getTokenList',
   z.object({
-    tags: z.array(z.string()).optional().describe('Filter by tags (e.g. "verified", "community")'),
+    query: z.enum(['verified', 'lst']).default('verified')
+      .describe('Tag to filter by — "verified" or "lst"'),
   }),
   z.array(z.object({
-    address: zMint,
+    id: zMint.describe('Token mint address'),
     name: z.string(),
     symbol: z.string(),
+    icon: z.string().optional(),
     decimals: z.number(),
-    logoURI: z.string().optional(),
-    tags: z.array(z.string()),
-    daily_volume: z.number().optional(),
-    created_at: z.string().optional(),
-    freeze_authority: z.string().nullable().optional(),
-    mint_authority: z.string().nullable().optional(),
-    permanent_delegate: z.string().nullable().optional(),
-    minted_at: z.string().nullable().optional(),
-    extensions: z.record(z.string(), z.unknown()).optional(),
+    tokenProgram: z.string().optional(),
+    holderCount: z.number().optional(),
+    isVerified: z.boolean().optional(),
+    tags: z.array(z.string()).optional(),
+    organicScore: z.number().optional(),
+    organicScoreLabel: z.string().optional(),
+    fdv: z.number().optional(),
+    mcap: z.number().optional(),
+    usdPrice: z.number().optional(),
+    liquidity: z.number().optional(),
+    audit: z.object({
+      mintAuthorityDisabled: z.boolean().optional(),
+      freezeAuthorityDisabled: z.boolean().optional(),
+      topHoldersPercentage: z.number().optional(),
+    }).optional(),
   })),
-  'Get the full Jupiter verified token list with metadata, tags, and daily volume.',
-  { httpMethod: 'GET', path: '/tokens/v1/all' },
+  'Get Jupiter tokens by tag ("verified" or "lst"). Returns token metadata, organic score, price, and audit info.',
+  { httpMethod: 'GET', path: '/tokens/v2/tag' },
 );
 
 register(
   'getTokenInfo',
   z.object({
-    mint: zMint.describe('Token mint address to query'),
+    query: z.string().describe('Search by mint address, symbol, or name. Comma-separate for multiple (max 100)'),
   }),
-  z.object({
-    address: zMint,
+  z.array(z.object({
+    id: zMint.describe('Token mint address'),
     name: z.string(),
     symbol: z.string(),
+    icon: z.string().optional(),
     decimals: z.number(),
-    logoURI: z.string().optional(),
+    tokenProgram: z.string().optional(),
+    holderCount: z.number().optional(),
+    isVerified: z.boolean().optional(),
     tags: z.array(z.string()).optional(),
-    daily_volume: z.number().optional(),
-    created_at: z.string().optional(),
-    freeze_authority: z.string().nullable().optional(),
-    mint_authority: z.string().nullable().optional(),
-    permanent_delegate: z.string().nullable().optional(),
-    minted_at: z.string().nullable().optional(),
-    extensions: z.record(z.string(), z.unknown()).optional(),
-  }),
-  'Get metadata for a single token by mint address.',
-  { httpMethod: 'GET', path: '/tokens/v1' },
+    organicScore: z.number().optional(),
+    organicScoreLabel: z.string().optional(),
+    fdv: z.number().optional(),
+    mcap: z.number().optional(),
+    usdPrice: z.number().optional(),
+    liquidity: z.number().optional(),
+    audit: z.object({
+      mintAuthorityDisabled: z.boolean().optional(),
+      freezeAuthorityDisabled: z.boolean().optional(),
+      topHoldersPercentage: z.number().optional(),
+    }).optional(),
+    firstPool: z.object({
+      id: z.string().optional(),
+      createdAt: z.string().optional(),
+    }).optional(),
+  })),
+  'Search for token information by mint address, symbol, or name. Returns detailed metadata, price, organic score, and audit info.',
+  { httpMethod: 'GET', path: '/tokens/v2/search' },
 );
 
 /* ═══════════════════════════════════════════════════════════════

@@ -41,7 +41,7 @@ export interface JupiterToolsConfig {
    * Jupiter Token API base URL.
    * Defaults to `apiUrl` (i.e. `https://api.jup.ag`).
    *
-   * Token endpoints are served under `/tokens/v1/...` on this base URL.
+   * Token endpoints are served under `/tokens/v2/...` on this base URL.
    * Override this if Jupiter moves the token API to a different host.
    *
    * @since 1.0.7
@@ -63,8 +63,8 @@ export interface JupiterToolsConfig {
  *  Routes each ProtocolMethod to the correct HTTP call based on
  *  the `httpMethod` and `path` stored in the schema registration.
  *  Handles special cases:
- *   - getTokenList: served from tokensApiUrl /tokens/v1/all
- *   - getTokenInfo: served from tokensApiUrl /tokens/v1/{mint}
+ *   - getTokenList: served from tokensApiUrl /tokens/v2/tag?query=...
+ *   - getTokenInfo: served from tokensApiUrl /tokens/v2/search?query=...
  * ═══════════════════════════════════════════════════════════════ */
 
 function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHttpClient) {
@@ -72,15 +72,14 @@ function createJupiterExecutor(http: ProtocolHttpClient, tokensHttp: ProtocolHtt
     const verb = method.httpMethod ?? 'GET';
     const path = method.path ?? `/${method.name}`;
 
-    // ── getTokenList: route to tokensApiUrl /tokens/v1/all ────
+    // ── getTokenList: route to tokensApiUrl /tokens/v2/tag ────
     if (method.name === 'getTokenList') {
       return tokensHttp.get(path, input);
     }
 
-    // ── getTokenInfo: route to tokensApiUrl /tokens/v1/{mint} ─
+    // ── getTokenInfo: route to tokensApiUrl /tokens/v2/search ─
     if (method.name === 'getTokenInfo') {
-      const { mint, ...rest } = input;
-      return tokensHttp.get(`/tokens/v1/${mint}`, rest);
+      return tokensHttp.get(path, input);
     }
 
     if (verb === 'POST') {
@@ -139,7 +138,7 @@ export function createJupiterTools(
   };
 
   // Token API client — defaults to same base URL as main API
-  // (tokens.jup.ag is deprecated; tokens are now at api.jup.ag/tokens/v1/...)
+  // (tokens.jup.ag is deprecated; tokens are now at api.jup.ag/tokens/v2/...)
   const tokensHttpConfig: ProtocolClientConfig = {
     baseUrl: tokensApiUrl ?? apiUrl,
     apiKey,
