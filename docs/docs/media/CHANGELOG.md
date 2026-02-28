@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.8] — 2026-02-27
+
+### Fixed
+- **#21 — `getTokenList` 404 on `/tokens/v1/all`**: Jupiter Token API V1 is dead. Migrated to
+  V2 endpoint: `GET /tokens/v2/tag?query=verified`. The `tags` input parameter is replaced by
+  `query` accepting `"verified"` or `"lst"`. Response schema updated to V2 format (includes
+  `id`, `organicScore`, `usdPrice`, `mcap`, `audit`, etc.).
+- **#22 — `getTokenInfo` 404 on `/tokens/v1/{mint}`**: Same V1 deprecation. Migrated to V2
+  search endpoint: `GET /tokens/v2/search?query={mint}`. The `mint` parameter is replaced by
+  `query` (accepts mint address, symbol, name, or comma-separated list up to 100). Returns an
+  array of matching tokens with V2 metadata.
+
+### Changed
+- Token API section header: V1 → V2 in schemas module.
+- `tokensApiUrl` JSDoc updated to reference `/tokens/v2/...` paths.
+- `examples/jupiter-standalone.ts` updated with V2 `query` parameters.
+
+---
+
 ## [1.0.7] — 2026-02-27
 
 ### Fixed
@@ -270,6 +289,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.8]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.4...v1.0.5

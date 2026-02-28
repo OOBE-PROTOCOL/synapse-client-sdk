@@ -1,9 +1,9 @@
 /**
  * Jupiter SDK — Standalone usage (no agents)
  *
- * Demonstrates the v1.0.7 fixes:
- *  - #20: getTokenList now routes to api.jup.ag/tokens/v1/all (tokens.jup.ag is dead)
- *  - getTokenInfo routes to api.jup.ag/tokens/v1/{mint}
+ * Demonstrates the v1.0.8 fixes:
+ *  - #21: getTokenList now uses V2: /tokens/v2/tag?query=verified
+ *  - #22: getTokenInfo now uses V2: /tokens/v2/search?query={mint}
  *  - tokensApiUrl configurable — user controls the endpoint
  *  - throwOnError works — throws ProtocolApiError on failures
  *  - toolMap accessible with BOTH prefixed and unprefixed keys
@@ -26,19 +26,19 @@ console.log('Headers:', jupiter.getHeaders());
 console.log('Base URL:', jupiter.httpClient.baseUrl);
 
 async function main() {
-  // ── 2. getTokenList — fix #20 (now routes to api.jup.ag/tokens/v1/all)
+  // ── 2. getTokenList — fix #21 (now routes to /tokens/v2/tag?query=verified)
   try {
-    const tokens = await jupiter.toolMap.getTokenList.invoke({});
+    const tokens = await jupiter.toolMap.getTokenList.invoke({ query: 'verified' });
     const parsed = JSON.parse(tokens);
-    console.log(`Token list: ${parsed.length} tokens loaded`);
+    console.log(`Token list: ${parsed.length} verified tokens loaded`);
   } catch (err) {
     console.error('getTokenList error (throwOnError works!):', err);
   }
 
-  // ── 3. getTokenInfo — routes to api.jup.ag/tokens/v1/{mint}
+  // ── 3. getTokenInfo — fix #22 (now routes to /tokens/v2/search?query={mint})
   const SOL_MINT = 'So11111111111111111111111111111111111111112';
   try {
-    const info = await jupiter.toolMap.getTokenInfo.invoke({ mint: SOL_MINT });
+    const info = await jupiter.toolMap.getTokenInfo.invoke({ query: SOL_MINT });
     console.log('SOL token info:', info);
   } catch (err) {
     console.error('getTokenInfo error:', err);
@@ -72,8 +72,8 @@ async function main() {
 
   // ── 7. Direct httpClient usage (advanced) ─────────────────
   //    For endpoints not covered by tools, use the raw client:
-  const raw = await jupiter.httpClient.get('/tokens/v1/all');
-  console.log('Raw token list (direct):', Array.isArray(raw) ? `${(raw as any[]).length} tokens` : raw);
+  const raw = await jupiter.httpClient.get('/tokens/v2/tag', { query: 'lst' });
+  console.log('Raw LST list (direct):', Array.isArray(raw) ? `${(raw as any[]).length} LSTs` : raw);
 }
 
 main().catch(console.error);
