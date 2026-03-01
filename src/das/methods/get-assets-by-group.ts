@@ -49,5 +49,5 @@ export async function getAssetsByGroup(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasPage<DasAsset>> {
   const { commitment, ...rest } = opts;
-  return t.request('getAssetsByGroup', [{ ...params, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAssetsByGroup', { ...params, ...(commitment ? { commitment } : {}) }, rest);
 }

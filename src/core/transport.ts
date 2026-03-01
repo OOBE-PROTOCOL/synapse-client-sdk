@@ -106,7 +106,7 @@ export class HttpTransport {
    * @throws {SynapseError} For all other RPC errors.
    * @since 1.0.0
    */
-  async request<T = unknown>(method: string, params: unknown[] = [], opts: CallOptions = {}): Promise<T> {
+  async request<T = unknown>(method: string, params: unknown[] | Record<string, unknown> = [], opts: CallOptions = {}): Promise<T> {
     const maxAttempts = Math.max(1, opts.maxRetries ?? this.maxRetries);
     let lastErr: RpcResponse | null = null;
 

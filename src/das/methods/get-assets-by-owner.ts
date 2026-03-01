@@ -53,5 +53,5 @@ export async function getAssetsByOwner(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasPage<DasAsset>> {
   const { commitment, ...rest } = opts;
-  return t.request('getAssetsByOwner', [{ ...params, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAssetsByOwner', { ...params, ...(commitment ? { commitment } : {}) }, rest);
 }

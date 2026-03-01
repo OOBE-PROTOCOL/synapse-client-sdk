@@ -29,5 +29,5 @@ export async function getAssetBatch(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasAsset[]> {
   const { commitment, ...rest } = opts;
-  return t.request('getAssetBatch', [{ ids, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAssetBatch', { ids, ...(commitment ? { commitment } : {}) }, rest);
 }
