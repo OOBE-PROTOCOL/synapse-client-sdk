@@ -46,5 +46,5 @@ export async function getAssetsByAuthority(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasPage<DasAsset>> {
   const { commitment, ...rest } = opts;
-  return t.request('getAssetsByAuthority', [{ ...params, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAssetsByAuthority', { ...params, ...(commitment ? { commitment } : {}) }, rest);
 }

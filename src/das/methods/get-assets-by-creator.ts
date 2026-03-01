@@ -49,5 +49,5 @@ export async function getAssetsByCreator(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasPage<DasAsset>> {
   const { commitment, ...rest } = opts;
-  return t.request('getAssetsByCreator', [{ ...params, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAssetsByCreator', { ...params, ...(commitment ? { commitment } : {}) }, rest);
 }

@@ -32,5 +32,5 @@ export async function searchAssets(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasPage<DasAsset>> {
   const { commitment, ...rest } = opts;
-  return t.request('searchAssets', [{ ...params, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('searchAssets', { ...params, ...(commitment ? { commitment } : {}) }, rest);
 }

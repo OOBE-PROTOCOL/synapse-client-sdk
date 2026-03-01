@@ -63,5 +63,5 @@ export async function getTokenAccounts(
   opts: DasOpts & CallOptions = {}
 ): Promise<TokenAccountsByOwnerResult> {
   const { commitment, ...rest } = opts;
-  return t.request('getTokenAccounts', [{ ...params, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getTokenAccounts', { ...params, ...(commitment ? { commitment } : {}) }, rest);
 }
