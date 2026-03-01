@@ -61,22 +61,14 @@ function createMetaplexExecutor(transport: HttpTransport) {
       throw new Error(`Unknown Metaplex DAS method: ${method.name}`);
     }
 
-    // Strip the commitment field — DAS methods embed it in the params object
+    // Strip the commitment field — DAS methods embed it in the named params
     const { commitment, ...params } = input;
 
-    // DAS methods expect a single params array element
-    const rpcParams = commitment
-      ? [{ ...params, commitment }]
-      : [params];
-
-    // For single-ID methods, unwrap to match the DAS API signature
-    if (method.name === 'getAsset' || method.name === 'getAssetProof') {
-      return transport.request(rpcMethod, [{ id: params.id, ...(commitment ? { commitment } : {}) }]);
-    }
-
-    if (method.name === 'getAssets' || method.name === 'getAssetProofs') {
-      return transport.request(rpcMethod, [{ ids: params.ids, ...(commitment ? { commitment } : {}) }]);
-    }
+    // DAS API uses JSON-RPC 2.0 named parameters (object), NOT positional (array).
+    // This matches the Metaplex Read API / DAS specification.
+    const rpcParams: Record<string, unknown> = commitment
+      ? { ...params, commitment }
+      : { ...params };
 
     return transport.request(rpcMethod, rpcParams);
   };
@@ -100,14 +92,14 @@ async function executeResolveCollection(
 
   // Fetch collection asset + sample items in parallel
   const [collection, page] = await Promise.all([
-    transport.request('getAsset', [{ id: collectionAddress, ...commitmentParam }]),
-    transport.request('getAssetsByGroup', [{
+    transport.request('getAsset', { id: collectionAddress, ...commitmentParam }),
+    transport.request('getAssetsByGroup', {
       groupKey: 'collection',
       groupValue: collectionAddress,
       limit: sampleSize,
       page: 1,
       ...commitmentParam,
-    }]),
+    }),
   ]);
 
   // Compute stats from the sample

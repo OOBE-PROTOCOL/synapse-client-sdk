@@ -29,5 +29,5 @@ export async function getAssetProof(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasAssetProof> {
   const { commitment, ...rest } = opts;
-  return t.request('getAssetProof', [{ id, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAssetProof', { id, ...(commitment ? { commitment } : {}) }, rest);
 }

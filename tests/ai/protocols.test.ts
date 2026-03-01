@@ -786,7 +786,7 @@ describe('Metaplex Tool Factory', () => {
     const result = await toolkit.toolMap.getAsset.invoke({ id: 'Abc123def456' });
     expect(client.transport.request).toHaveBeenCalledWith(
       'getAsset',
-      [{ id: 'Abc123def456' }],
+      { id: 'Abc123def456' },
     );
     const parsed = JSON.parse(result as string);
     expect(parsed.id).toBe('abc');
@@ -800,7 +800,7 @@ describe('Metaplex Tool Factory', () => {
     await toolkit.toolMap.getAssetsByOwner.invoke({ ownerAddress: 'SomeWallet' });
     expect(client.transport.request).toHaveBeenCalledWith(
       'getAssetsByOwner',
-      [expect.objectContaining({ ownerAddress: 'SomeWallet' })],
+      expect.objectContaining({ ownerAddress: 'SomeWallet' }),
     );
   });
 
@@ -815,7 +815,7 @@ describe('Metaplex Tool Factory', () => {
     });
     expect(client.transport.request).toHaveBeenCalledWith(
       'getAssetsByGroup',
-      [expect.objectContaining({ groupKey: 'collection', groupValue: 'CollectionAddr' })],
+      expect.objectContaining({ groupKey: 'collection', groupValue: 'CollectionAddr' }),
     );
   });
 

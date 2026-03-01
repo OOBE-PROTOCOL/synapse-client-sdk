@@ -67,5 +67,5 @@ export async function getSignaturesForAsset(
   opts: DasOpts & CallOptions = {}
 ): Promise<AssetSignaturesPage> {
   const { commitment, ...rest } = opts;
-  return t.request('getSignaturesForAsset', [{ ...params, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getSignaturesForAsset', { ...params, ...(commitment ? { commitment } : {}) }, rest);
 }

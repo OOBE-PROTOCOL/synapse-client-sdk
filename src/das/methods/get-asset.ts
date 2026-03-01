@@ -29,5 +29,5 @@ export async function getAsset(
   opts: DasOpts & CallOptions = {}
 ): Promise<DasAsset> {
   const { commitment, ...rest } = opts;
-  return t.request('getAsset', [{ id, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAsset', { id, ...(commitment ? { commitment } : {}) }, rest);
 }

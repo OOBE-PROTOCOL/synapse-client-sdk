@@ -169,7 +169,11 @@ export interface RpcRequest {
   jsonrpc: '2.0';
   id: number;
   method: string;
-  params?: unknown[];
+  /**
+   * Positional (`unknown[]`) or named (`Record<string, unknown>`) params.
+   * Standard Solana RPC uses positional; DAS / Read API uses named.
+   */
+  params?: unknown[] | Record<string, unknown>;
 }
 
 /**

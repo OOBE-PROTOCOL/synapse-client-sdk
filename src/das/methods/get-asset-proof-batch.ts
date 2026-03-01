@@ -29,5 +29,5 @@ export async function getAssetProofBatch(
   opts: DasOpts & CallOptions = {}
 ): Promise<Record<string, DasAssetProof>> {
   const { commitment, ...rest } = opts;
-  return t.request('getAssetProofBatch', [{ ids, ...(commitment ? { commitment } : {}) }], rest);
+  return t.request('getAssetProofBatch', { ids, ...(commitment ? { commitment } : {}) }, rest);
 }
