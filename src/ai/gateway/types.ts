@@ -310,6 +310,7 @@ export type GatewayEventType =
   | 'call:after'
   | 'call:error'
   | 'call:attested'
+  | 'call:retry'
   | 'payment:intent'
   | 'payment:settled'
   | 'ratelimit:exceeded'
@@ -318,7 +319,13 @@ export type GatewayEventType =
   | 'x402:payment-required'
   | 'x402:payment-verified'
   | 'x402:payment-settled'
-  | 'x402:payment-sent';
+  | 'x402:payment-sent'
+  | 'x402:pipeline:paywall'
+  | 'x402:pipeline:verify'
+  | 'x402:pipeline:execute'
+  | 'x402:pipeline:settle'
+  | 'x402:pipeline:complete'
+  | 'x402:pipeline:error';
 
 /**
  * @description Event object emitted by the gateway event bus.
@@ -345,6 +352,110 @@ export type GatewayEventHandler<T = unknown> = (event: GatewayEvent<T>) => void 
 
 import type { X402Config } from './x402/types';
 import type { X402ClientConfig } from './x402/client';
+
+/**
+ * @description Retry configuration for `gateway.execute()`.
+ * @since 1.2.2
+ */
+export interface RetryConfig {
+  /** Maximum number of attempts (including the first call). Default: 1 (no retry). */
+  maxAttempts?: number;
+  /** Base delay in ms before retrying. Doubles each attempt (exponential backoff). Default: 500. */
+  backoffMs?: number;
+  /** Multiplier applied to backoffMs on each retry. Default: 2. */
+  backoffMultiplier?: number;
+  /**
+   * Error messages or substrings that are considered transient and retryable.
+   * Default: `['fetch failed', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'socket hang up']`.
+   */
+  retryableErrors?: string[];
+  /**
+   * If `true`, falls back to a raw `client.call()` on the last retry attempt.
+   * Useful when the gateway transport is behind a proxy that may be down.
+   * Default: `false`.
+   */
+  fallbackToDirectRpc?: boolean;
+}
+
+/**
+ * @description Depth option for {@link AgentGateway.snapshot}.
+ * @since 1.2.2
+ */
+export type SnapshotDepth = 'minimal' | 'standard' | 'full';
+
+/**
+ * @description JSON-safe snapshot of an AgentGateway's state.
+ * All BigInt values are serialized as strings.
+ * @since 1.2.2
+ */
+export interface GatewaySnapshot {
+  agentId: string;
+  identity: {
+    name: string;
+    walletPubkey: string;
+    description?: string;
+    tags?: string[];
+    createdAt: number;
+  };
+  metrics: {
+    totalCallsServed: number;
+    totalRevenue: string;
+    activeSessions: number;
+    totalSessions: number;
+    avgLatencyMs: number;
+    totalAttestations: number;
+  };
+  sessions: {
+    id: string;
+    status: string;
+    buyer: string;
+    budgetRemaining?: string;
+    callsMade?: number;
+    createdAt?: number;
+  }[];
+  tiers: {
+    id: string;
+    label: string;
+    pricePerCall: string;
+    maxCallsPerSession: number;
+    rateLimit: number;
+    includesAttestation: boolean;
+  }[];
+  marketplace: {
+    totalListings: number;
+    totalBundles: number;
+  };
+  x402: {
+    paywallEnabled: boolean;
+    clientEnabled: boolean;
+    clientPayments: number;
+  };
+}
+
+/**
+ * @description Step data emitted during the x402 pipeline.
+ * @since 1.2.2
+ */
+export interface X402PipelineStep {
+  /** Sequential step number (1-based). */
+  id: number;
+  /** Total number of steps in the pipeline. */
+  totalSteps: number;
+  /** Which actor performed this step. */
+  actor: 'seller' | 'buyer' | 'facilitator';
+  /** Short action label. */
+  action: string;
+  /** Human-readable description. */
+  detail: string;
+  /** Arbitrary step-specific data. */
+  data: Record<string, unknown>;
+  /** How long this step took in milliseconds. */
+  durationMs: number;
+  /** Whether the step was a real execution or simulated. */
+  status: 'real' | 'simulated';
+  /** Error that occurred during the step, if any. */
+  error?: string;
+}
 
 /**
  * @description Full configuration for an AgentGateway instance.
@@ -383,4 +494,11 @@ export interface GatewayConfig {
    * x402-enabled servers.
    */
   x402Client?: X402ClientConfig;
+
+  /**
+   * Retry configuration for `execute()` and `executeWithX402()`.
+   * When set, transient RPC errors are retried with exponential backoff.
+   * @since 1.2.2
+   */
+  retry?: RetryConfig;
 }

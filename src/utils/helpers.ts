@@ -2,7 +2,7 @@
  * SDK utility helpers — minimal, zero-dependency.
  *
  * Pure functions for common Solana value conversions, validation,
- * and async control flow.
+ * async control flow, BigInt serialization, and HMR-safe singletons.
  *
  * @module utils/helpers
  * @since 1.0.0
@@ -127,4 +127,134 @@ export async function retry<T>(
     }
   }
   throw lastErr;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ *  BigInt-safe JSON serialization
+ * ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Recursively convert `BigInt` values to `string` so the result is
+ * safe for `JSON.stringify()`.
+ *
+ * Useful in Next.js API Routes, Express handlers, or anywhere you
+ * need to serialize gateway / x402 objects that contain `BigInt`
+ * fields like `pricePerCall`, `maxBudget`, or `amountCharged`.
+ *
+ * @param obj - Any value (object, array, primitive, BigInt).
+ * @returns A deep clone with every `BigInt` replaced by its string
+ *          representation.
+ * @since 1.2.2
+ *
+ * @example
+ * ```ts
+ * import { toJsonSafe } from '@oobe-protocol-labs/synapse-client-sdk/utils';
+ *
+ * return NextResponse.json(toJsonSafe({ budget: 100_000n, data }));
+ * ```
+ */
+export function toJsonSafe(obj: unknown): unknown {
+  if (typeof obj === 'bigint') return obj.toString();
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toJsonSafe);
+  if (obj instanceof Map) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of obj) out[String(k)] = toJsonSafe(v);
+    return out;
+  }
+  if (typeof obj === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      out[k] = toJsonSafe(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
+/**
+ * `JSON.stringify` replacer that converts `BigInt` → `string`.
+ *
+ * @example
+ * ```ts
+ * import { bigIntReplacer } from '@oobe-protocol-labs/synapse-client-sdk/utils';
+ *
+ * const json = JSON.stringify(data, bigIntReplacer);
+ * ```
+ *
+ * @since 1.2.2
+ */
+export function bigIntReplacer(_key: string, value: unknown): unknown {
+  return typeof value === 'bigint' ? value.toString() : value;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ *  HMR-safe singleton (Next.js / Vite / Webpack dev mode)
+ * ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Options for {@link createSingleton}.
+ * @since 1.2.2
+ */
+export interface SingletonOptions {
+  /**
+   * Bump this number to invalidate a cached instance (e.g. after
+   * changing the factory config). The old instance is replaced on
+   * the next call.
+   */
+  version?: number;
+}
+
+// Shared registry on globalThis — survives HMR reloads.
+const _singletonRegistry: Record<string, unknown> =
+  ((globalThis as Record<string, unknown>).__synapse_singletons as Record<string, unknown>) ??= {};
+
+/**
+ * Create an HMR-safe singleton accessor.
+ *
+ * In Next.js (and other HMR-enabled environments) module scope is
+ * re-evaluated on every hot reload, destroying any `let` / `const`
+ * singleton. This helper stores the instance on `globalThis` so it
+ * survives reloads.
+ *
+ * @typeParam T - Type of the singleton instance.
+ * @param key     - Unique global key (e.g. `'synapseClient'`).
+ * @param factory - Function that creates the instance.
+ * @param options - Optional version for cache invalidation.
+ * @returns A zero-arg getter that returns the singleton.
+ * @since 1.2.2
+ *
+ * @example
+ * ```ts
+ * import { createSingleton } from '@oobe-protocol-labs/synapse-client-sdk/utils';
+ * import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+ *
+ * export const getSynapseClient = createSingleton('synapseClient', () =>
+ *   SynapseClient.fromEndpoint({ network: 'mainnet', region: 'US', apiKey: process.env.SYNAPSE_API_KEY! }),
+ * );
+ *
+ * // With version invalidation — bump to recreate:
+ * export const getGateway = createSingleton('agentGateway', () =>
+ *   createAgentGateway(getSynapseClient(), config),
+ *   { version: 4 },
+ * );
+ * ```
+ */
+export function createSingleton<T>(
+  key: string,
+  factory: () => T,
+  options?: SingletonOptions,
+): () => T {
+  const versionKey = `${key}__v`;
+  return () => {
+    const versionMismatch =
+      options?.version != null && _singletonRegistry[versionKey] !== options.version;
+    if (!_singletonRegistry[key] || versionMismatch) {
+      _singletonRegistry[key] = factory();
+      if (options?.version != null) {
+        _singletonRegistry[versionKey] = options.version;
+      }
+    }
+    return _singletonRegistry[key] as T;
+  };
 }

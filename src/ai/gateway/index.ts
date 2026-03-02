@@ -37,6 +37,10 @@ import type {
   ToolListing,
   ToolBundle,
   SessionState,
+  RetryConfig,
+  SnapshotDepth,
+  GatewaySnapshot,
+  X402PipelineStep,
 } from './types';
 
 import { AgentSession, SessionError } from './session';
@@ -374,9 +378,13 @@ export class AgentGateway {
    *  4. `session.postCall()`     — deduct budget, increment counters
    *  5. `pricing.reportLatency()`— feed latency into dynamic pricing
    *
+   * If `config.retry` is set, transient errors are retried with exponential
+   * backoff. Pass per-call `opts.retry` to override.
+   *
    * @param {string} sessionId - The session to charge
    * @param {string} method - Solana JSON-RPC method name
    * @param {unknown[]} [params=[]] - Method parameters
+   * @param {{ retry?: RetryConfig }} [opts] - Per-call overrides
    * @returns {Promise<AttestedResult<T>>} The attested result
    * @since 1.0.0
    */
@@ -384,6 +392,7 @@ export class AgentGateway {
     sessionId: string,
     method: string,
     params: unknown[] = [],
+    opts: { retry?: RetryConfig } = {},
   ): Promise<AttestedResult<T>> {
     const session = this.getSessionOrThrow(sessionId);
     const snap = session.snapshot();
@@ -392,56 +401,86 @@ export class AgentGateway {
     this.emit('call:before', { method, params }, sessionId);
     const cost = session.preCall(method);
 
-    // ── Execute
-    const start = performance.now();
-    let result: T;
-    try {
-      result = await this.transport.request<T>(method, params);
-    } catch (err) {
-      this.emit('call:error', { method, error: String(err) }, sessionId);
-      throw err;
+    // ── Retry config (per-call > gateway-level > none)
+    const retryCfg = opts.retry ?? this.config.retry;
+    const maxAttempts = retryCfg?.maxAttempts ?? 1;
+    const backoffMs = retryCfg?.backoffMs ?? 500;
+    const backoffMul = retryCfg?.backoffMultiplier ?? 2;
+    const retryableErrors = retryCfg?.retryableErrors ?? [
+      'fetch failed', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'socket hang up',
+    ];
+    const fallback = retryCfg?.fallbackToDirectRpc ?? false;
+
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const start = performance.now();
+      try {
+        const result = await this.transport.request<T>(method, params);
+        const latencyMs = Math.round(performance.now() - start);
+
+        // ── Attest
+        const shouldAttest = snap.tier.includesAttestation ||
+          (this.config.attestByDefault ?? false);
+        const slot = typeof result === 'object' && result !== null && 'context' in result
+          ? ((result as Record<string, unknown>).context as { slot?: number })?.slot ?? 0
+          : 0;
+
+        const attested = await this.validator.wrapResult<T>(
+          result, sessionId, method, params, slot, latencyMs,
+          snap.callsMade + 1, shouldAttest,
+        );
+
+        // ── Post-call
+        session.postCall(method, cost);
+        this.totalCallsServed++;
+        this.pricing.reportLatency(latencyMs);
+
+        this.emit('call:after', {
+          method, latencyMs, cost: cost.toString(), attested: shouldAttest, attempt,
+        }, sessionId);
+
+        if (shouldAttest && attested.attestation) {
+          this.emit('call:attested', { attestation: attested.attestation }, sessionId);
+        }
+
+        return attested;
+      } catch (err) {
+        lastErr = err;
+        const errMsg = String(err);
+        const isRetryable = retryableErrors.some(s => errMsg.includes(s));
+
+        if (attempt < maxAttempts && isRetryable) {
+          const delay = backoffMs * (backoffMul ** (attempt - 1));
+          this.emit('call:retry', {
+            method, attempt, maxAttempts, error: errMsg, delayMs: delay,
+          }, sessionId);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+
+        // ── Fallback to raw RPC on last attempt
+        if (fallback && attempt === maxAttempts) {
+          try {
+            const fbStart = performance.now();
+            const fbResult = await this.transport.request<T>(method, params);
+            const fbLatency = Math.round(performance.now() - fbStart);
+            const attested = await this.validator.wrapResult<T>(
+              fbResult, sessionId, method, params, 0, fbLatency,
+              snap.callsMade + 1, false,
+            );
+            session.postCall(method, cost);
+            this.totalCallsServed++;
+            this.pricing.reportLatency(fbLatency);
+            return attested;
+          } catch {
+            // fallback also failed — throw original error
+          }
+        }
+      }
     }
-    const latencyMs = Math.round(performance.now() - start);
 
-    // ── Attest
-    const shouldAttest = snap.tier.includesAttestation ||
-      (this.config.attestByDefault ?? false);
-
-    // Get slot from the response context if available, otherwise 0
-    const slot = typeof result === 'object' && result !== null && 'context' in result
-      ? ((result as Record<string, unknown>).context as { slot?: number })?.slot ?? 0
-      : 0;
-
-    const attested = await this.validator.wrapResult<T>(
-      result,
-      sessionId,
-      method,
-      params,
-      slot,
-      latencyMs,
-      snap.callsMade + 1,
-      shouldAttest,
-    );
-
-    // ── Post-call
-    session.postCall(method, cost);
-    this.totalCallsServed++;
-
-    // ── Feed latency into pricing engine
-    this.pricing.reportLatency(latencyMs);
-
-    this.emit('call:after', {
-      method,
-      latencyMs,
-      cost: cost.toString(),
-      attested: shouldAttest,
-    }, sessionId);
-
-    if (shouldAttest && attested.attestation) {
-      this.emit('call:attested', { attestation: attested.attestation }, sessionId);
-    }
-
-    return attested;
+    this.emit('call:error', { method, error: String(lastErr) }, sessionId);
+    throw lastErr;
   }
 
   /**
@@ -541,11 +580,16 @@ export class AgentGateway {
    * This combines processX402Request + execute + settleX402Payment
    * into a single call for convenience.
    *
+   * Emits granular `x402:pipeline:*` events for each step so consumers
+   * can build step-by-step UI animations, logging, or monitoring without
+   * reconstructing the pipeline manually.
+   *
    * @param {string | null} sessionId - Session to charge (or null for x402-only billing)
    * @param {string} method - RPC method
    * @param {unknown[]} [params=[]] - Method params
    * @param {Record<string, string | undefined>} [incomingHeaders={}] - HTTP headers with PAYMENT-SIGNATURE
-   * @returns {Promise<{ result: AttestedResult<T> | null; x402: PaywallResult; settlement: SettleResult | null; responseHeaders: Record<string, string> }>} Attested result + x402 settlement info + response headers
+   * @param {{ onStep?: (step: X402PipelineStep) => void }} [opts] - Pipeline callbacks
+   * @returns {Promise<{ result: AttestedResult<T> | null; x402: PaywallResult; settlement: SettleResult | null; responseHeaders: Record<string, string>; pipeline: { steps: X402PipelineStep[]; totalDurationMs: number } }>}
    * @since 1.0.0
    */
   async executeWithX402<T = unknown>(
@@ -553,32 +597,67 @@ export class AgentGateway {
     method: string,
     params: unknown[] = [],
     incomingHeaders: Record<string, string | undefined> = {},
+    opts: {
+      /** Callback invoked after each pipeline step completes. */
+      onStep?: (step: X402PipelineStep) => void;
+    } = {},
   ): Promise<{
     result: AttestedResult<T> | null;
     x402: PaywallResult;
     settlement: SettleResult | null;
     responseHeaders: Record<string, string>;
+    /** Pipeline execution trace — always populated since v1.2.2. */
+    pipeline: {
+      steps: X402PipelineStep[];
+      totalDurationMs: number;
+    };
   }> {
+    const pipelineStart = performance.now();
+    const steps: X402PipelineStep[] = [];
+    let stepId = 0;
+
+    const pushStep = (step: Omit<X402PipelineStep, 'id' | 'totalSteps'>): void => {
+      const s: X402PipelineStep = { ...step, id: ++stepId, totalSteps: 0 };
+      steps.push(s);
+      this.emit(`x402:pipeline:${step.actor === 'facilitator' ? 'verify' : step.action.toLowerCase().includes('paywall') ? 'paywall' : step.action.toLowerCase().includes('settle') ? 'settle' : 'execute'}` as GatewayEventType, s, sessionId ?? '');
+      opts.onStep?.(s);
+    };
+
     // ── Step 1: x402 paywall check
+    let t = performance.now();
     const x402Result = await this.processX402Request(method, incomingHeaders);
+    pushStep({
+      actor: 'seller',
+      action: `Paywall → ${x402Result.type}`,
+      detail: x402Result.type === 'payment-required'
+        ? 'Payment required — returning 402'
+        : x402Result.type === 'payment-valid'
+          ? 'Payment verified — proceeding'
+          : 'No payment needed',
+      data: { type: x402Result.type, method },
+      durationMs: Math.round(performance.now() - t),
+      status: 'real',
+    });
 
     if (x402Result.type === 'payment-required') {
+      // Finalize totalSteps
+      for (const s of steps) s.totalSteps = stepId;
       return {
         result: null,
         x402: x402Result,
         settlement: null,
         responseHeaders: x402Result.headers,
+        pipeline: { steps, totalDurationMs: Math.round(performance.now() - pipelineStart) },
       };
     }
 
     // ── Step 2: Execute the RPC call
+    t = performance.now();
     let attested: AttestedResult<T>;
 
     if (sessionId) {
-      // Metered execution within a session
       attested = await this.execute<T>(sessionId, method, params);
     } else {
-      // Direct execution (x402-only billing, no session metering)
       const start = performance.now();
       const result = await this.transport.request<T>(method, params);
       const latencyMs = Math.round(performance.now() - start);
@@ -589,11 +668,21 @@ export class AgentGateway {
       this.pricing.reportLatency(latencyMs);
     }
 
+    pushStep({
+      actor: 'seller',
+      action: `Execute ${method}`,
+      detail: `RPC call completed in ${attested.latencyMs}ms`,
+      data: { method, latencyMs: attested.latencyMs, hasAttestation: !!attested.attestation },
+      durationMs: Math.round(performance.now() - t),
+      status: 'real',
+    });
+
     // ── Step 3: Settle (if x402 payment was provided)
     let settlement: SettleResult | null = null;
     const responseHeaders: Record<string, string> = {};
 
     if (x402Result.type === 'payment-valid') {
+      t = performance.now();
       settlement = await this.settleX402Payment(
         x402Result.paymentPayload,
         x402Result.requirements,
@@ -601,9 +690,29 @@ export class AgentGateway {
       if (settlement.responseHeader) {
         responseHeaders['PAYMENT-RESPONSE'] = settlement.responseHeader;
       }
+
+      pushStep({
+        actor: 'facilitator',
+        action: 'Settle payment',
+        detail: settlement.success ? 'Payment settled on-chain' : 'Settlement failed',
+        data: {
+          success: settlement.success,
+          transaction: settlement.settleResponse?.transaction,
+        },
+        durationMs: Math.round(performance.now() - t),
+        status: 'real',
+      });
     }
 
-    return { result: attested, x402: x402Result, settlement, responseHeaders };
+    // Finalize totalSteps
+    for (const s of steps) s.totalSteps = stepId;
+
+    const totalDurationMs = Math.round(performance.now() - pipelineStart);
+    this.emit('x402:pipeline:complete' as GatewayEventType, {
+      steps, totalDurationMs, method, sessionId,
+    }, sessionId ?? '');
+
+    return { result: attested, x402: x402Result, settlement, responseHeaders, pipeline: { steps, totalDurationMs } };
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -882,6 +991,167 @@ export class AgentGateway {
   }
 
   /* ═══════════════════════════════════════════════════════════
+   *  Snapshot — JSON-safe serialization
+   * ═══════════════════════════════════════════════════════════ */
+
+  /**
+   * @description Return a JSON-safe snapshot of the entire gateway state.
+   *
+   * All `BigInt` values are converted to strings. The result can be passed
+   * directly to `JSON.stringify()` or `NextResponse.json()` without any
+   * manual serialization.
+   *
+   * @param {{ depth?: SnapshotDepth }} [opts] - Control how much data is included.
+   *   - `'minimal'`  — identity + metrics only (for lists)
+   *   - `'standard'` — identity + metrics + sessions + tiers + marketplace (default)
+   *   - `'full'`     — everything including full session snapshots
+   * @returns {GatewaySnapshot} A plain object safe for JSON serialization.
+   * @since 1.2.2
+   *
+   * @example
+   * ```ts
+   * const snap = gateway.snapshot();
+   * return NextResponse.json(snap); // no bigIntToString() needed
+   * ```
+   */
+  snapshot(opts: { depth?: SnapshotDepth } = {}): GatewaySnapshot {
+    const depth = opts.depth ?? 'standard';
+    const identity = this.config.identity;
+
+    const result: GatewaySnapshot = {
+      agentId: this.agentId as string,
+      identity: {
+        name: identity.name,
+        walletPubkey: identity.walletPubkey,
+        description: identity.description,
+        tags: identity.tags,
+        createdAt: identity.createdAt,
+      },
+      metrics: {
+        totalCallsServed: this.totalCallsServed,
+        totalRevenue: this.totalRevenue.toString(),
+        activeSessions: [...this.sessions.values()].filter(s => s.status === 'active').length,
+        totalSessions: this.sessions.size,
+        avgLatencyMs: this.pricing.getAvgLatency(),
+        totalAttestations: this.validator.totalAttestations,
+      },
+      sessions: [],
+      tiers: [],
+      marketplace: { totalListings: 0, totalBundles: 0 },
+      x402: {
+        paywallEnabled: this.paywall !== null,
+        clientEnabled: this.x402Client !== null,
+        clientPayments: this.x402Client?.payments ?? 0,
+      },
+    };
+
+    if (depth === 'minimal') return result;
+
+    // Sessions
+    for (const session of this.sessions.values()) {
+      const snap = session.snapshot();
+      const entry: GatewaySnapshot['sessions'][number] = {
+        id: snap.id,
+        status: snap.status,
+        buyer: snap.buyer as string,
+      };
+      if (depth === 'full') {
+        entry.budgetRemaining = snap.budgetRemaining.toString();
+        entry.callsMade = snap.callsMade;
+        entry.createdAt = snap.createdAt;
+      }
+      result.sessions.push(entry);
+    }
+
+    // Tiers
+    for (const tier of this.config.defaultTiers) {
+      result.tiers.push({
+        id: tier.id,
+        label: tier.label,
+        pricePerCall: tier.pricePerCall.toString(),
+        maxCallsPerSession: tier.maxCallsPerSession,
+        rateLimit: tier.rateLimit,
+        includesAttestation: tier.includesAttestation,
+      });
+    }
+
+    // Marketplace
+    const mpStats = this.marketplace.getStats();
+    result.marketplace = {
+      totalListings: mpStats.totalListings,
+      totalBundles: mpStats.totalBundles,
+    };
+
+    return result;
+  }
+
+  /**
+   * Alias for `snapshot()` — enables `JSON.stringify(gateway)`.
+   * @since 1.2.2
+   */
+  toJSON(): GatewaySnapshot {
+    return this.snapshot({ depth: 'standard' });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+   *  PaymentIntent builder
+   * ═══════════════════════════════════════════════════════════ */
+
+  /**
+   * @description Build a {@link PaymentIntent} with sensible defaults.
+   *
+   * Generates `nonce`, `createdAt`, and `token` automatically. Accepts
+   * `budget` as a string or number that is converted to `BigInt` internally.
+   *
+   * @param {object} opts - Intent parameters
+   * @param {AgentId | string | AgentGateway} opts.buyer - Buyer agent ID, DID string, or gateway instance
+   * @param {string} [opts.tier='standard'] - Pricing tier ID
+   * @param {string | number | bigint} opts.budget - Max budget (converted to BigInt)
+   * @param {number} [opts.ttl] - TTL in seconds (default: config.sessionTtl or 3600)
+   * @param {string} [opts.signature='sdk-generated'] - Payment signature
+   * @returns {PaymentIntent} A ready-to-use PaymentIntent
+   * @since 1.2.2
+   *
+   * @example
+   * ```ts
+   * const intent = gateway.createPaymentIntent({
+   *   buyer: buyerGateway,
+   *   tier: 'standard',
+   *   budget: '100000',
+   * });
+   * const session = gateway.openSession(intent);
+   * ```
+   */
+  createPaymentIntent(opts: {
+    buyer: AgentId | string | AgentGateway;
+    tier?: string;
+    budget: string | number | bigint;
+    ttl?: number;
+    signature?: string;
+    token?: PricingTier['token'];
+  }): PaymentIntent {
+    const buyerId: AgentId =
+      opts.buyer instanceof AgentGateway
+        ? opts.buyer.agentId
+        : (opts.buyer as AgentId);
+
+    const tierId = opts.tier ?? 'standard';
+    const tier = this.pricing.getTier(tierId);
+
+    return {
+      nonce: randomUUID(),
+      buyer: buyerId,
+      seller: this.agentId,
+      tierId,
+      maxBudget: BigInt(opts.budget),
+      token: opts.token ?? tier?.token ?? { type: 'USDC' as const },
+      signature: opts.signature ?? 'sdk-generated',
+      createdAt: Date.now(),
+      ttl: opts.ttl ?? this.config.sessionTtl ?? 3600,
+    };
+  }
+
+  /* ═══════════════════════════════════════════════════════════
    *  Internals
    * ═══════════════════════════════════════════════════════════ */
 
@@ -961,6 +1231,10 @@ export type {
   GatewayEvent,
   GatewayEventHandler,
   GatewayConfig,
+  RetryConfig,
+  SnapshotDepth,
+  GatewaySnapshot,
+  X402PipelineStep,
 } from './types';
 export { AgentId as createAgentId } from './types';
 
@@ -976,6 +1250,14 @@ export {
 export { PricingEngine, DEFAULT_TIERS, type DynamicPricingConfig } from './pricing';
 export { ResponseValidator } from './validator';
 export { ToolMarketplace, type MarketplaceQuery, type MarketplaceStats } from './marketplace';
+
+/* ── Agent Registry ────────────────────────────────────────── */
+export {
+  AgentRegistry,
+  MemoryAdapter,
+  type PersistenceAdapter,
+  type AgentRegistryConfig,
+} from './registry';
 
 /* ── x402 Protocol ─────────────────────────────────────────── */
 export * from './x402';

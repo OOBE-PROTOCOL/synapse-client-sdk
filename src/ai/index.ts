@@ -100,6 +100,12 @@ export {
   // Marketplace
   ToolMarketplace,
 
+  // Agent Registry
+  AgentRegistry,
+  MemoryAdapter,
+  type PersistenceAdapter,
+  type AgentRegistryConfig,
+
   // Errors
   GatewayError,
   SessionNotFoundError,
@@ -128,6 +134,10 @@ export {
   type MarketplaceQuery,
   type MarketplaceStats,
   createAgentId,
+  type RetryConfig,
+  type SnapshotDepth,
+  type GatewaySnapshot,
+  type X402PipelineStep,
 
   // x402 Protocol
   X402Paywall,
@@ -157,6 +167,11 @@ export {
   PaymentSigningError,
   PaymentRetryError,
 
+  // x402 Discovery
+  FacilitatorDiscovery,
+  type FacilitatorHealthResult,
+  type FindBestOptions,
+
   // x402 Types
   type X402Network,
   type X402ResourceInfo,
@@ -181,6 +196,39 @@ export {
   type PaywallResult,
   type SettleResult,
 } from './gateway';
+
+// ── Persistence (Redis, PostgreSQL, Memory) ──────────────────
+export {
+  // Adapters
+  MemoryStore,
+  RedisPersistence,
+  PostgresPersistence,
+
+  // Error
+  PersistenceError,
+
+  // Helpers
+  serialize as serializeForStore,
+  deserialize as deserializeFromStore,
+  buildKey as buildStoreKey,
+  buildSchema as buildPostgresSchema,
+  SCHEMA_VERSION as PERSISTENCE_SCHEMA_VERSION,
+
+  // Types
+  type PersistenceStore,
+  type RedisLike,
+  type PgLike,
+  type SessionRecord,
+  type ReceiptRecord,
+  type MetricPoint,
+  type SetOptions,
+  type ListOptions,
+  type MetricQueryOpts,
+  type StoreConfig,
+  type RedisStoreConfig,
+  type PostgresStoreConfig,
+  type MemoryStoreConfig,
+} from './persistence';
 
 // ── Lazy factories (Next.js / webpack compatibility) ──────────
 export {

@@ -7,6 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.2] — 2026-03-02
+
+### Added
+
+- **`toJsonSafe()` & `bigIntReplacer()`** — Recursive BigInt→string serializer and
+  `JSON.stringify` replacer. Eliminates the "Do not know how to serialize a BigInt"
+  crash in Next.js API Routes and Express handlers.
+  (`import { toJsonSafe, bigIntReplacer } from '…/utils'`)
+
+- **`createSingleton()`** — HMR-safe singleton factory using `globalThis.__synapse_singletons`.
+  Survives Next.js / Vite hot-module reloads in development. Supports `version` option
+  for cache invalidation.
+  (`import { createSingleton } from '…/utils'`)
+
+- **`client.getTransport()`** — Public accessor for the underlying `HttpTransport`,
+  replacing the `(client as any)._transport` pattern.
+
+- **`gateway.snapshot(depth?)`** — JSON-safe serialization of the entire AgentGateway
+  state with three depth levels: `'minimal'`, `'standard'`, `'full'`.
+  Also adds `gateway.toJSON()` enabling `JSON.stringify(gateway)`.
+
+- **`gateway.createPaymentIntent(opts)`** — Builder for `PaymentIntent` objects with
+  auto-generated nonce, timestamp, token. Accepts buyer as `AgentId`, string, or
+  `AgentGateway` instance.
+
+- **Retry on `gateway.execute()`** — Configurable retry with exponential backoff via
+  `RetryConfig`. Supports per-call overrides, transient error detection, and optional
+  fallback to direct RPC on the last attempt. Emits `call:retry` events.
+
+- **x402 pipeline hooks & observability** — `executeWithX402()` now emits granular
+  `x402:pipeline:*` events for each pipeline step (paywall → verify → execute → settle).
+  Accepts `onStep` callback and returns full pipeline trace with per-step timing.
+
+- **`AgentRegistry`** — Multi-agent lifecycle manager with CRUD, `filter()`,
+  `searchMarketplace()`, `getAggregateMetrics()`, `snapshot()`, pluggable persistence
+  via `PersistenceAdapter`, and `[Symbol.iterator]` support.
+
+- **`FacilitatorDiscovery`** — Runtime-aware facilitator discovery wrapping the static
+  `FACILITATOR_REGISTRY`. Adds `filter()`, `query()`, `healthCheck()`, and `findBest()`
+  with optional health-check-based selection and gas-sponsoring preference.
+
+- **Persistence module (`ai/persistence`)** — Full long-term storage layer for agent
+  gateway data:
+  - `MemoryStore` — in-process, for testing and dev
+  - `RedisPersistence` — Redis/Valkey adapter (ioredis, node-redis, @upstash/redis)
+  - `PostgresPersistence` — PostgreSQL adapter with auto-migration (pg, @vercel/postgres,
+    @neondatabase/serverless)
+  - Universal `PersistenceStore` interface covering agents, sessions, receipts, metrics,
+    and generic key-value with TTL
+  - All adapters implement `PersistenceAdapter` for drop-in use with `AgentRegistry`
+  - Helpers: `serialize()`, `deserialize()`, `buildKey()`, `buildSchema()` (DDL generator)
+  - New optional peer deps: `ioredis >=5.0.0`, `pg >=8.0.0`
+
+- **Next.js integration (`./next`)** — Drop-in helpers for App Router:
+  - `synapseResponse(data)` — BigInt-safe `Response` factory
+  - `withSynapseError(handler)` — API Route error boundary
+  - `createSynapseProvider(config)` — HMR-safe SynapseClient singleton
+  - `createGatewayProvider(clientProvider, configFactory)` — HMR-safe AgentGateway singleton
+
+### New types
+
+- `RetryConfig`, `SnapshotDepth`, `GatewaySnapshot`, `X402PipelineStep`
+- `SessionRecord`, `ReceiptRecord`, `MetricPoint`, `PersistenceStore`
+- `RedisLike`, `PgLike`, `RedisStoreConfig`, `PostgresStoreConfig`, `MemoryStoreConfig`
+- `FacilitatorHealthResult`, `FindBestOptions`, `AgentRegistryConfig`
+- `SynapseResponseInit`, `SingletonOptions`
+
+### New subpath exports
+
+- `@oobe-protocol-labs/synapse-client-sdk/next`
+- `@oobe-protocol-labs/synapse-client-sdk/ai/persistence`
+
+---
+
 ## [1.2.1] — 2025-07-22
 
 ### Fixed
