@@ -97,8 +97,8 @@ export {
   SOLANA_DEVNET,
   USDC_SOLANA_MAINNET,
   USDC_SOLANA_DEVNET,
-  USDC_MAINNET,  // deprecated alias
-  USDC_DEVNET,   // deprecated alias
+  USDC_MAINNET,  
+  USDC_DEVNET, 
 
   /* ── Base / EVM networks & assets ── */
   BASE_MAINNET,
@@ -139,6 +139,9 @@ export {
   findGasSponsoredFacilitators,
   listKnownFacilitators,
   resolveKnownFacilitator,
+  FacilitatorDiscovery,
+  type FacilitatorHealthResult,
+  type FindBestOptions,
 } from './registry';
 
 /* ── Facilitator Client ──────────────────────────────────────── */

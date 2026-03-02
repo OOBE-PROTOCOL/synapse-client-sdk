@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] — 2025-07-22
+
+### Fixed
+
+- **DAS API: named params instead of positional arrays** — All 11 DAS (Metaplex Read API) methods
+  now send JSON-RPC 2.0 **named parameters** (`{ id: "..." }`) instead of wrapping them in a
+  positional array (`[{ id: "..." }]`). This was the root cause of 7 Metaplex AI tools returning
+  empty/default results: the gateway correctly expected named params per the DAS spec, but the SDK
+  was sending array-wrapped params that were silently dropped.
+  Affected methods: `getAsset`, `getAssetProof`, `getAssetBatch`, `getAssetProofBatch`,
+  `getAssetsByOwner`, `getAssetsByGroup`, `getAssetsByCreator`, `getAssetsByAuthority`,
+  `searchAssets`, `getSignaturesForAsset`, `getTokenAccounts`.
+
+- **`RpcRequest.params` type widened** — Changed from `unknown[]` to
+  `unknown[] | Record<string, unknown>` to support both positional params (standard Solana RPC)
+  and named params (DAS / Read API).
+
+- **`HttpTransport.request()` signature updated** — The `params` argument now accepts
+  `unknown[] | Record<string, unknown>` to match the widened `RpcRequest` type.
+
+- **Metaplex AI executor simplified** — Removed special-casing for `getAsset`, `getAssetProof`,
+  `getAssets`, and `getAssetProofs` in the Metaplex executor; all DAS tools now use a unified
+  named-params code path.
+
+- **`resolveCollection` executor** — Updated internal `getAsset` and `getAssetsByGroup` calls
+  to use named params.
+
+### Known Issues (Gateway-side)
+
+The following failures are **not SDK bugs** — they require server-side fixes on the Synapse gateway:
+
+- **4 DAS methods not implemented in gateway**: `getAssetBatch`, `getAssetProofBatch`,
+  `getSignaturesForAsset`, `getTokenAccounts` — the SDK sends correct requests, but the gateway
+  does not yet route these methods.
+- **6 Raydium REST tools return 500**: The gateway proxy to `api-v3.raydium.io` returns HTTP 500
+  for certain endpoints. Direct calls to Raydium's API succeed.
+- **`getAccountInfo` blocked by gateway**: 3 on-chain tools (Jupiter/Raydium) fail because the
+  gateway RPC endpoint does not allow `getAccountInfo`.
+- **`getProgramAccounts` returns 502**: 5 on-chain tools fail with 502 Bad Gateway when calling
+  `getProgramAccounts` through the gateway.
+
+---
+
 ## [1.2.0] — 2026-02-28
 
 ### Added

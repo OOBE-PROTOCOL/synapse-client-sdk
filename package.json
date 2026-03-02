@@ -1,6 +1,6 @@
 {
   "name": "@oobe-protocol-labs/synapse-client-sdk",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Synapse Client SDK -- Typed Solana RPC gateway with @solana/kit native types, 53 JSON-RPC methods, DAS, WebSocket, gRPC/Geyser parser, signers/wallets, and AI agent tooling (LangChain, x402) | Powered by oobeprotocol.ai (OOBE)",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -65,6 +65,11 @@
       "types": "./dist/esm/ai/lazy.d.ts",
       "import": "./dist/esm/ai/lazy.js",
       "require": "./dist/cjs/ai/lazy.js"
+    },
+    "./ai/persistence": {
+      "types": "./dist/esm/ai/persistence/index.d.ts",
+      "import": "./dist/esm/ai/persistence/index.js",
+      "require": "./dist/cjs/ai/persistence/index.js"
     },
     "./kit": {
       "types": "./dist/esm/kit/index.d.ts",
@@ -155,6 +160,11 @@
       "types": "./dist/esm/context/index.d.ts",
       "import": "./dist/esm/context/index.js",
       "require": "./dist/cjs/context/index.js"
+    },
+    "./next": {
+      "types": "./dist/esm/next/index.d.ts",
+      "import": "./dist/esm/next/index.js",
+      "require": "./dist/cjs/next/index.js"
     }
   },
   "files": [
@@ -243,13 +253,21 @@
   "peerDependencies": {
     "@langchain/core": ">=0.3.0 <0.4.0",
     "typescript": ">=5.0.0",
-    "zod": ">=3.23.0 || >=4.0.0"
+    "zod": ">=3.23.0 || >=4.0.0",
+    "ioredis": ">=5.0.0",
+    "pg": ">=8.0.0"
   },
   "peerDependenciesMeta": {
     "zod": {
       "optional": true
     },
     "@langchain/core": {
+      "optional": true
+    },
+    "ioredis": {
+      "optional": true
+    },
+    "pg": {
       "optional": true
     }
   },

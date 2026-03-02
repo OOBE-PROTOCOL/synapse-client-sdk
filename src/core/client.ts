@@ -113,6 +113,25 @@ export class SynapseClient implements SynapseClientLike {
     if (config.debug) console.log('[Synapse SDK] initialized:', config.endpoint, `(${isBrowser() ? 'browser' : 'server'})`);
   }
 
+  /**
+   * Returns the underlying HTTP transport.
+   *
+   * Use this when a function requires a bare `HttpTransport` (e.g.
+   * `createExecutableSolanaTools`, protocol tool factories) instead of
+   * casting with `(client as any)._transport`.
+   *
+   * @returns The {@link HttpTransport} instance used by this client.
+   * @since 1.2.2
+   *
+   * @example
+   * ```ts
+   * const tools = createExecutableSolanaTools(client.getTransport());
+   * ```
+   */
+  getTransport(): HttpTransport {
+    return this.transport;
+  }
+
   /* ═══════════════════════════════════════════════════════════════
    *  Static factories
    * ═══════════════════════════════════════════════════════════════ */
