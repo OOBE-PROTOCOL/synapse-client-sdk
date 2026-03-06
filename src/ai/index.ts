@@ -106,6 +106,16 @@ export {
   type PersistenceAdapter,
   type AgentRegistryConfig,
 
+  // Monetization Bridge
+  MonetizeError,
+  createMonetizedTools,
+  createMultiProtocolMonetizedTools,
+  type MonetizableGateway,
+  type MonetizeConfig,
+  type MonetizationMetrics,
+  type MonetizedToolkit,
+  type MultiMonetizedResult,
+
   // Errors
   GatewayError,
   SessionNotFoundError,
@@ -211,7 +221,10 @@ export {
   serialize as serializeForStore,
   deserialize as deserializeFromStore,
   buildKey as buildStoreKey,
+  parseKey as parseStoreKey,
+  extractAgentId as extractStoreAgentId,
   buildSchema as buildPostgresSchema,
+  buildKvCleanupSql as buildPostgresCleanupSql,
   SCHEMA_VERSION as PERSISTENCE_SCHEMA_VERSION,
 
   // Types
@@ -235,3 +248,165 @@ export {
   getJupiterTools,
   getRaydiumTools,
 } from './lazy';
+
+// ── Solana Agent Protocol (SAP) ───────────────────────────────
+export {
+  // Types
+  SAP_DEFAULT_PROGRAM_ID,
+  SAP_SEED_PREFIX,
+  SAP_ACCOUNT_DISCRIMINATOR,
+  SAP_INSTRUCTION_DISCRIMINATORS,
+  pdaToIdentity,
+  pricingToTier,
+  type SAPConfig,
+  type AgentCapability,
+  type AgentPricingOnChain,
+  type AgentReputationOnChain,
+  type AgentPDAAccount,
+  type RegisterAgentParams,
+  type UpdateAgentParams,
+  type UpdateReputationParams,
+  type AgentDiscoveryFilter,
+  type DiscoveryResult,
+  type SAPAggregateMetrics,
+  type SAPInstruction,
+  type SAPAccountMeta,
+
+  // PDA derivation & serialization
+  deriveAgentPDA,
+  deserializeAgentAccount,
+  serializeRegisterData,
+  serializeUpdateData,
+  base58Decode,
+  base58Encode,
+  isOnCurve,
+  BorshReader,
+  BorshWriter,
+  type DerivedPDA,
+
+  // Instruction builder
+  SAPInstructionBuilder,
+  SAPProgramError,
+
+  // Discovery
+  SAPDiscovery,
+  SAPDiscoveryError,
+
+  // On-chain adapter
+  OnChainPersistenceAdapter,
+} from './sap';
+
+// ── Cross-Protocol Intent Resolver ────────────────────────────
+export {
+  // Errors
+  IntentError,
+  CyclicDependencyError,
+  UnresolvedReferenceError,
+  BudgetExceededError as IntentBudgetExceededError,
+
+  // Classes
+  IntentParser,
+  IntentPlanner,
+  IntentExecutor,
+
+  // Types
+  type IntentProtocol,
+  type StepReference,
+  type IntentStep,
+  type Intent,
+  type IntentOptions,
+  type PlannedStep,
+  type IntentPlan,
+  type StepStatus,
+  type StepResult,
+  type IntentResultStatus,
+  type IntentResult,
+  type IntentConfig,
+  type ValidationResult,
+  type ParserConfig,
+  type PlannerConfig,
+} from './intents';
+
+// ── Solana Actions & Blinks ───────────────────────────────────
+export {
+  // Server
+  ActionServer,
+  ActionServerError,
+
+  // Blinks
+  BlinkGenerator,
+  createBlinkFromAction,
+  DEFAULT_RESOLVER_URL,
+  ACTION_SCHEME,
+
+  // Types
+  type ActionType,
+  type ActionParameter,
+  type LinkedAction,
+  type ActionGetResponse,
+  type ActionPostRequest,
+  type ActionPostResponse,
+  type ActionsJson,
+  type ActionsJsonRule,
+  type ActionHandler,
+  type ActionContext,
+  type ActionDefinition,
+  type ActionServerConfig,
+  type BlinkConfig,
+  type BlinkMetadata,
+} from './actions';
+
+// ── Plugin System ─────────────────────────────────────────────
+export {
+  // Registry
+  SynapseAgentKit,
+
+  // Plugins
+  TokenPlugin,
+  NFTPlugin,
+  DeFiPlugin,
+  MiscPlugin,
+  BlinksPlugin,
+
+  // Types
+  type SynapsePlugin,
+  type PluginMeta,
+  type PluginProtocol,
+  type PluginContext,
+  type PluginExecutor,
+  type PluginInstallResult,
+  type InstalledPlugin,
+  type AgentKitConfig,
+  type McpToolDescriptor,
+  type McpResourceDescriptor,
+} from './plugins';
+
+// ── MCP (Model Context Protocol) ──────────────────────────────
+export {
+  // Server (expose tools as MCP)
+  SynapseMcpServer,
+  McpServerError,
+
+  // Client Bridge (connect external MCP servers)
+  McpClientBridge,
+
+  // Constants & Types
+  MCP_PROTOCOL_VERSION,
+  MCP_JSONRPC_VERSION,
+  type JsonRpcRequest,
+  type JsonRpcResponse,
+  type JsonRpcNotification,
+  type McpToolDefinition,
+  type McpToolCallParams,
+  type McpToolCallResult,
+  type McpResourceDefinition,
+  type McpResourceTemplate,
+  type McpPromptDefinition,
+  type McpPromptMessage,
+  type McpServerInfo,
+  type McpCapabilities,
+  type McpTransport,
+  type McpServerConfig,
+  type McpExternalServerConfig,
+  type McpConnectionStatus,
+} from './mcp';
