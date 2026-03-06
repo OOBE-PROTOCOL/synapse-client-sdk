@@ -1261,3 +1261,15 @@ export {
 
 /* ── x402 Protocol ─────────────────────────────────────────── */
 export * from './x402';
+
+/* ── Monetization Bridge ───────────────────────────────────── */
+export {
+  MonetizeError,
+  createMonetizedTools,
+  createMultiProtocolMonetizedTools,
+  type MonetizableGateway,
+  type MonetizeConfig,
+  type MonetizationMetrics,
+  type MonetizedToolkit,
+  type MultiMonetizedResult,
+} from './monetize';
