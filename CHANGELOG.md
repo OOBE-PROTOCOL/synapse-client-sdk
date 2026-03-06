@@ -7,6 +7,179 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] — 2026-03-06
+
+### ⚡ Breaking Changes
+
+- **Version bump**: `1.2.2` → `2.0.0`. This is a **major release** due to the introduction of the
+  plugin system (`SynapseAgentKit`) and MCP module which represent a new architecture layer.
+- **`transport.call()` removed from plugins** — All plugin executors now use `transport.request()`,
+  matching the public `HttpTransport` API. If you had custom code using `transport.call()` via
+  the plugin context, update to `transport.request()`.
+- **Registry mock client** — `SynapseAgentKit`'s internal context now exposes the transport as a
+  `.transport` property (matching `SynapseClientLike`) instead of `.getTransport()`.
+
+### Added
+
+#### Plugin System (`src/ai/plugins/`) — 6,469 lines of new code
+
+A fully modular, chainable plugin architecture for Solana-native AI tools. 110 tools across
+5 plugins and 18 protocols, all composable via `.use()`:
+
+```ts
+const kit = new SynapseAgentKit({ rpcUrl })
+  .use(TokenPlugin)
+  .use(NFTPlugin)
+  .use(DeFiPlugin)
+  .use(MiscPlugin)
+  .use(BlinksPlugin);
+
+const tools = kit.getTools();          // 110 LangChain StructuredTool[]
+const vercel = kit.getVercelAITools(); // Vercel AI SDK format
+const mcp = kit.getMcpToolDescriptors(); // MCP descriptors
+```
+
+- **`SynapseAgentKit`** (`src/ai/plugins/registry.ts`, 416 lines) — Core orchestrator with
+  `use()` chaining, multi-format tool export (LangChain, Vercel AI, MCP), `getToolMap()`,
+  `summary()`, `destroy()`. Includes `zodToJsonSchema()` helper for MCP descriptor generation.
+
+- **Plugin types** (`src/ai/plugins/types.ts`, 223 lines) — `SynapsePlugin`, `PluginMeta`,
+  `PluginProtocol`, `PluginContext`, `PluginExecutor`, `PluginInstallResult`, `InstalledPlugin`,
+  `AgentKitConfig`, `McpToolDescriptor`, `McpResourceDescriptor`.
+
+- **TokenPlugin** (`src/ai/plugins/token/`, 636 lines) — 22 methods across 3 protocols:
+  - `spl-token` (11): deployToken, transfer, transferSol, getBalance, getTokenAccounts, mintTo,
+    burn, freezeAccount, thawAccount, closeAccount, rugCheck
+  - `staking` (7): stakeSOL, unstakeSOL, getStakeAccounts, stakeJupSOL, unstakeJupSOL,
+    stakeSolayer, unstakeSolayer
+  - `bridging` (4): bridgeWormhole, bridgeWormholeStatus, bridgeDeBridge, bridgeDeBridgeStatus
+
+- **NFTPlugin** (`src/ai/plugins/nft/`, 481 lines) — 19 methods across 3 protocols:
+  - `metaplex-nft` (9): deployCollection, mintNFT, updateMetadata, verifyCreator,
+    verifyCollection, setAndVerifyCollection, delegateAuthority, revokeAuthority, configureRoyalties
+  - `3land` (5): createCollection, mintAndList, listForSale, cancelListing, buyNFT
+  - `das` (5): getAsset, getAssetsByOwner, getAssetsByCreator, getAssetsByCollection, searchAssets
+
+- **DeFiPlugin** (`src/ai/plugins/defi/`, 1,466 lines) — 43 methods across 10 protocols:
+  - `pump` (2): launchToken, trade
+  - `raydium-pools` (5): createCPMM, createCLMM, createAMMv4, addLiquidity, removeLiquidity
+  - `orca` (5): getWhirlpool, swap, openPosition, closePosition, collectFees
+  - `manifest` (4): createMarket, placeLimitOrder, cancelOrder, getOrderbook
+  - `meteora` (5): createDynamicPool, createDLMMPool, addDLMMLiquidity, removeDLMMLiquidity,
+    createAlphaVault
+  - `openbook` (3): createMarket, placeOrder, cancelOrder
+  - `drift` (7): deposit, withdraw, openPerpPosition, closePerpPosition, getPositions, lend, borrow
+  - `adrena` (5): openPosition, closePosition, addCollateral, removeCollateral, getPositions
+  - `lulo` (4): deposit, withdraw, getBestRates, getPositions
+  - `jito` (3): sendBundle, getBundleStatus, getTipEstimate
+
+- **MiscPlugin** (`src/ai/plugins/misc/`, 1,001 lines) — 20 methods across 6 protocols:
+  - `sns` (3): registerDomain, resolveDomain, reverseLookup — via Bonfida API
+  - `alldomains` (3): registerDomain, resolveDomain, getOwnedDomains
+  - `pyth` (3): getPrice, getPriceHistory, listPriceFeeds — via Hermes API
+  - `coingecko` (6): getTokenPrice, getTrending, getTopGainersLosers, getTokenInfo,
+    getPoolsByToken, getOHLCV — supports free + Pro API key
+  - `gibwork` (3): createBounty, listBounties, submitWork
+  - `send-arcade` (2): listGames, playGame
+
+- **BlinksPlugin** (`src/ai/plugins/blinks/`, 390 lines) — 6 methods (Solana Actions spec):
+  - getAction, executeAction, confirmAction, resolveBlinkUrl, validateActionsJson, buildActionUrl
+  - Pure HTTP executor — no RPC transport needed
+
+#### MCP Module (`src/ai/mcp/`) — 1,810 lines of new code
+
+Full Model Context Protocol (spec 2024-11-05) implementation with **zero external MCP
+dependencies**. Works as both server and client.
+
+- **`SynapseMcpServer`** (`src/ai/mcp/server.ts`, 762 lines) — Exposes any `SynapseAgentKit`
+  as a fully spec-compliant MCP server:
+  - **stdio transport**: Reads newline-delimited JSON-RPC from stdin, writes to stdout.
+    Compatible with Claude Desktop, Cursor, VS Code, Cline.
+  - **SSE transport**: HTTP server with `/mcp/sse` (EventSource), `/mcp/message` (POST),
+    `/mcp/health` (GET) endpoints.
+  - Full MCP spec dispatch: `initialize`, `tools/list`, `tools/call`, `resources/list`,
+    `resources/read`, `resources/templates/list`, `prompts/list`, `prompts/get`, `ping`,
+    `completion/complete`, `logging/setLevel`.
+  - Deep `zodToMcpSchema()` converter: handles ZodString (with checks), ZodNumber, ZodBoolean,
+    ZodArray, ZodObject (with required), ZodEnum, ZodOptional, ZodDefault, ZodNullable,
+    ZodRecord, ZodTuple, ZodLiteral, ZodUnion.
+  - `McpServerError` class for structured JSON-RPC error responses.
+  - `info()` introspection method.
+
+- **`McpClientBridge`** (`src/ai/mcp/client.ts`, 752 lines) — Connects to external MCP servers
+  and imports their tools:
+  - **stdio transport**: Spawns child processes (e.g. `npx -y @modelcontextprotocol/server-github`).
+  - **SSE transport**: Connects to HTTP SSE endpoints with session management.
+  - `connect(config)` / `disconnect(id)` / `disconnectAll()` — lifecycle management.
+  - `getTools()` — Returns LangChain `StructuredTool[]` from all connected servers.
+  - `getServerTools(id)` — Tools from a specific server.
+  - `callTool(serverId, name, args)` / `readResource(serverId, uri)` — direct access.
+  - `toPlugin()` — Converts to `SynapsePlugin` for `.use()` chaining on `SynapseAgentKit`.
+  - Runtime `jsonSchemaToZod()` converter for external tool input schemas.
+  - `getAllStatuses()` / `getAllToolDefinitions()` — introspection.
+
+- **MCP types** (`src/ai/mcp/types.ts`, 256 lines) — Complete protocol type definitions:
+  `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcNotification`, `McpToolDefinition`,
+  `McpToolCallParams`, `McpToolCallResult`, `McpResourceDefinition`, `McpResourceTemplate`,
+  `McpPromptDefinition`, `McpPromptMessage`, `McpServerInfo`, `McpCapabilities`, `McpTransport`,
+  `McpServerConfig`, `McpExternalServerConfig`, `McpConnectionStatus`.
+
+- **Constants**: `MCP_PROTOCOL_VERSION = '2024-11-05'`, `MCP_JSONRPC_VERSION = '2.0'`.
+
+#### Documentation
+
+- **`docs_md/10_PLUGINS.md`** — Full plugin system guide: quick start (LangChain, Vercel AI),
+  selective loading, complete tool catalog (all 110 methods), architecture diagrams, custom
+  plugin creation, read vs write operations, introspection API.
+- **`docs_md/11_MCP.md`** — Full MCP guide: stdio/SSE server setup, Claude Desktop & Cursor
+  config examples, client bridge (GitHub/Postgres/filesystem), combined server+client pattern,
+  all config interfaces, JSON Schema ↔ Zod conversion.
+- **README.md updated** — Version 2.0.0, new architecture diagram showing plugin system + MCP,
+  two new sections (Plugin System, MCP), updated source map, updated package exports table.
+- **Cross-references** — `00_SYNAPSE_CLIENT_SDK.md`, `03_AI_TOOLS.md`, `09_PIPELINES.md`
+  updated with links to new docs 10 and 11.
+
+### New subpath exports
+
+| Path | What |
+|------|------|
+| `./ai/plugins` | `SynapseAgentKit` + all 5 plugins + types |
+| `./ai/plugins/token` | `TokenPlugin` (22 tools) |
+| `./ai/plugins/nft` | `NFTPlugin` (19 tools) |
+| `./ai/plugins/defi` | `DeFiPlugin` (43 tools) |
+| `./ai/plugins/misc` | `MiscPlugin` (20 tools) |
+| `./ai/plugins/blinks` | `BlinksPlugin` (6 tools) |
+| `./ai/mcp` | `SynapseMcpServer` + `McpClientBridge` + types |
+
+### New types
+
+- Plugin system: `SynapsePlugin`, `PluginMeta`, `PluginProtocol`, `PluginContext`,
+  `PluginExecutor`, `PluginInstallResult`, `InstalledPlugin`, `AgentKitConfig`,
+  `McpToolDescriptor`, `McpResourceDescriptor`
+- MCP: `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcNotification`, `McpToolDefinition`,
+  `McpToolCallParams`, `McpToolCallResult`, `McpResourceDefinition`, `McpResourceTemplate`,
+  `McpPromptDefinition`, `McpPromptMessage`, `McpServerInfo`, `McpCapabilities`, `McpTransport`,
+  `McpServerConfig`, `McpExternalServerConfig`, `McpConnectionStatus`
+
+### Fixed
+
+- **`transport.call()` → `transport.request()`** — Token, DeFi, and Misc plugin executors
+  were calling `transport.call()` which does not exist on `HttpTransport`. Fixed to use
+  `transport.request()` (9 occurrences across 3 files).
+- **Registry mock client mismatch** — `SynapseAgentKit._context` was exposing the transport
+  via `getTransport()` method, but `SynapseClientLike` (and the NFT plugin) expect a
+  `.transport` property. Fixed to expose both `.transport` and `.getTransport()`.
+
+### Changed
+
+- Package description updated to mention 110+ plugin tools and MCP.
+- `src/ai/index.ts` barrel updated with plugin system + MCP re-exports.
+- Total AI tool count: **86 protocol tools** (from v1.2.0) + **110 plugin tools** + **MCP**
+  = **196+ tools** available to AI agents.
+- Total source files in plugin system + MCP: **17 files**, **6,469 lines**.
+
+---
+
 ## [1.2.2] — 2026-03-02
 
 ### Added
@@ -499,6 +672,9 @@ The following failures are **not SDK bugs** — they require server-side fixes o
 
 ---
 
+[2.0.0]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.2.2...v2.0.0
+[1.2.2]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.8...v1.2.0
 [1.0.8]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/oobe-protocol-labs/synapse-client-sdk/compare/v1.0.6...v1.0.7

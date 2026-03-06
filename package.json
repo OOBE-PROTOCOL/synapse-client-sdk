@@ -1,7 +1,7 @@
 {
   "name": "@oobe-protocol-labs/synapse-client-sdk",
-  "version": "1.2.2",
-  "description": "Synapse Client SDK -- Typed Solana RPC gateway with @solana/kit native types, 53 JSON-RPC methods, DAS, WebSocket, gRPC/Geyser parser, signers/wallets, and AI agent tooling (LangChain, x402) | Powered by oobeprotocol.ai (OOBE)",
+  "version": "2.0.0",
+  "description": "Synapse Client SDK -- Typed Solana RPC gateway with @solana/kit native types, 53 JSON-RPC methods, DAS, WebSocket, gRPC/Geyser parser, 110+ plugin-based AI tools (Token, NFT, DeFi, Misc, Blinks), MCP server & client, and x402 payments | Powered by oobeprotocol.ai (OOBE)",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -70,6 +70,36 @@
       "types": "./dist/esm/ai/persistence/index.d.ts",
       "import": "./dist/esm/ai/persistence/index.js",
       "require": "./dist/cjs/ai/persistence/index.js"
+    },
+    "./ai/gateway": {
+      "types": "./dist/esm/ai/gateway/index.d.ts",
+      "import": "./dist/esm/ai/gateway/index.js",
+      "require": "./dist/cjs/ai/gateway/index.js"
+    },
+    "./ai/gateway/x402": {
+      "types": "./dist/esm/ai/gateway/x402/index.d.ts",
+      "import": "./dist/esm/ai/gateway/x402/index.js",
+      "require": "./dist/cjs/ai/gateway/x402/index.js"
+    },
+    "./ai/gateway/monetize": {
+      "types": "./dist/esm/ai/gateway/monetize.d.ts",
+      "import": "./dist/esm/ai/gateway/monetize.js",
+      "require": "./dist/cjs/ai/gateway/monetize.js"
+    },
+    "./ai/sap": {
+      "types": "./dist/esm/ai/sap/index.d.ts",
+      "import": "./dist/esm/ai/sap/index.js",
+      "require": "./dist/cjs/ai/sap/index.js"
+    },
+    "./ai/intents": {
+      "types": "./dist/esm/ai/intents/index.d.ts",
+      "import": "./dist/esm/ai/intents/index.js",
+      "require": "./dist/cjs/ai/intents/index.js"
+    },
+    "./ai/actions": {
+      "types": "./dist/esm/ai/actions/index.d.ts",
+      "import": "./dist/esm/ai/actions/index.js",
+      "require": "./dist/cjs/ai/actions/index.js"
     },
     "./kit": {
       "types": "./dist/esm/kit/index.d.ts",
@@ -165,6 +195,41 @@
       "types": "./dist/esm/next/index.d.ts",
       "import": "./dist/esm/next/index.js",
       "require": "./dist/cjs/next/index.js"
+    },
+    "./ai/plugins": {
+      "types": "./dist/esm/ai/plugins/index.d.ts",
+      "import": "./dist/esm/ai/plugins/index.js",
+      "require": "./dist/cjs/ai/plugins/index.js"
+    },
+    "./ai/plugins/token": {
+      "types": "./dist/esm/ai/plugins/token/index.d.ts",
+      "import": "./dist/esm/ai/plugins/token/index.js",
+      "require": "./dist/cjs/ai/plugins/token/index.js"
+    },
+    "./ai/plugins/nft": {
+      "types": "./dist/esm/ai/plugins/nft/index.d.ts",
+      "import": "./dist/esm/ai/plugins/nft/index.js",
+      "require": "./dist/cjs/ai/plugins/nft/index.js"
+    },
+    "./ai/plugins/defi": {
+      "types": "./dist/esm/ai/plugins/defi/index.d.ts",
+      "import": "./dist/esm/ai/plugins/defi/index.js",
+      "require": "./dist/cjs/ai/plugins/defi/index.js"
+    },
+    "./ai/plugins/misc": {
+      "types": "./dist/esm/ai/plugins/misc/index.d.ts",
+      "import": "./dist/esm/ai/plugins/misc/index.js",
+      "require": "./dist/cjs/ai/plugins/misc/index.js"
+    },
+    "./ai/plugins/blinks": {
+      "types": "./dist/esm/ai/plugins/blinks/index.d.ts",
+      "import": "./dist/esm/ai/plugins/blinks/index.js",
+      "require": "./dist/cjs/ai/plugins/blinks/index.js"
+    },
+    "./ai/mcp": {
+      "types": "./dist/esm/ai/mcp/index.d.ts",
+      "import": "./dist/esm/ai/mcp/index.js",
+      "require": "./dist/cjs/ai/mcp/index.js"
     }
   },
   "files": [
