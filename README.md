@@ -2,12 +2,13 @@
 
 Typed Solana RPC gateway SDK for Node.js and the browser.
 Covers JSON-RPC, WebSocket PubSub, gRPC/Geyser streaming, DAS (Digital Asset Standard),
-AI agent tooling (LangChain + Zod), and the x402 HTTP payment protocol --
+AI agent tooling (LangChain + Zod), a modular plugin system (110+ on-chain tools),
+MCP (Model Context Protocol) server & client bridge, and the x402 HTTP payment protocol —
 all behind a single `SynapseClient` entry point.
 
 | | |
 |-|-|
-| **Version** | 1.0.1 |
+| **Version** | 2.0.0 |
 | **License** | MIT |
 | **Node** | >= 18.0.0 |
 | **TypeScript** | >= 5.0 |
@@ -35,12 +36,14 @@ all behind a single `SynapseClient` entry point.
    - [Protocol Tools (Jupiter, Raydium, Metaplex)](#protocol-tools)
    - [Agent Commerce Gateway](#agent-commerce-gateway)
    - [x402 Payment Protocol](#x402-payment-protocol)
-8. [Testing](#testing)
-9. [Build and Development](#build-and-development)
-10. [Package Exports](#package-exports)
-11. [Documentation](#documentation)
-12. [Contributing](#contributing)
-13. [License](#license)
+8. [Plugin System (SynapseAgentKit)](#plugin-system-synapseagentkit)
+9. [MCP (Model Context Protocol)](#mcp-model-context-protocol)
+10. [Testing](#testing)
+11. [Build and Development](#build-and-development)
+12. [Package Exports](#package-exports)
+13. [Documentation](#documentation)
+14. [Contributing](#contributing)
+15. [License](#license)
 
 ---
 
@@ -112,14 +115,34 @@ const client = SynapseClient.fromEndpoint({
 ```
 SynapseClient
  |
- |-- .rpc        SolanaRpc          53 JSON-RPC methods (lazy-loaded)
- |-- .das        DasClient          11 DAS/Metaplex Read API methods
- |-- .ws         WsClient           WebSocket PubSub subscriptions
- |-- .grpc       GrpcTransport      gRPC unary calls + Geyser parser
+ |-- .rpc           SolanaRpc          53 JSON-RPC methods (lazy-loaded)
+ |-- .das           DasClient          11 DAS/Metaplex Read API methods
+ |-- .ws            WsClient           WebSocket PubSub subscriptions
+ |-- .grpc          GrpcTransport      gRPC unary calls + Geyser parser
  |
- |-- call()      Raw JSON-RPC call
- |-- batch()     Batched JSON-RPC calls
- |-- destroy()   Tear down all connections
+ |-- call()         Raw JSON-RPC call
+ |-- batch()        Batched JSON-RPC calls
+ |-- destroy()      Tear down all connections
+
+SynapseAgentKit                         ← Plugin system (v2)
+ |
+ |-- .use(Plugin)   Chainable plugin loader
+ |-- .getTools()    LangChain StructuredTool[] (all plugins)
+ |-- .getVercelAITools()   Vercel AI SDK tools
+ |-- .getMcpToolDescriptors()  MCP-shaped descriptors
+ |
+ |-- Plugins:       Token (22) · NFT (19) · DeFi (43) · Misc (20) · Blinks (6)
+
+SynapseMcpServer                        ← MCP server
+ |
+ |-- start()        stdio transport (Claude Desktop, Cursor)
+ |-- startSse()     SSE transport (web clients)
+
+McpClientBridge                         ← MCP client
+ |
+ |-- connect()      Connect to external MCP servers
+ |-- getTools()     LangChain tools from remote servers
+ |-- toPlugin()     Convert to .use()-able plugin
 ```
 
 Sub-clients are initialized on first property access.
@@ -199,7 +222,7 @@ Requires `@grpc/grpc-js` and `@grpc/proto-loader` as optional peer dependencies.
 
 ### ai/
 
-AI agent commerce layer. Zod schemas, LangChain tools, protocol integrations, gateway, x402.
+AI agent layer. Zod schemas, LangChain tools, protocol integrations, gateway, x402, plugin system, MCP.
 
 | File | Purpose |
 |------|---------|
@@ -221,6 +244,16 @@ AI agent commerce layer. Zod schemas, LangChain tools, protocol integrations, ga
 | `src/ai/gateway/x402/client.ts` | `X402BuyerClient` -- buyer-side payment header construction. |
 | `src/ai/gateway/x402/facilitator.ts` | `FacilitatorClient` -- on-chain settlement verification. |
 | `src/ai/gateway/x402/registry.ts` | `FACILITATOR_REGISTRY` -- pre-configured endpoints for known facilitators (PayAI, Dexter, RelAI, CDP). |
+| `src/ai/plugins/types.ts` | Plugin system core types: `SynapsePlugin`, `PluginMeta`, `PluginProtocol`, `PluginContext`, `PluginExecutor`. |
+| `src/ai/plugins/registry.ts` | `SynapseAgentKit` class — chainable `.use()`, multi-format tool export (LangChain, Vercel AI, MCP). |
+| `src/ai/plugins/token/` | Token plugin: 22 methods (SPL tokens, staking, bridging). |
+| `src/ai/plugins/nft/` | NFT plugin: 19 methods (Metaplex, 3Land, DAS). |
+| `src/ai/plugins/defi/` | DeFi plugin: 43 methods (Pump, Raydium, Orca, Manifest, Meteora, OpenBook, Drift, Adrena, Lulo, Jito). |
+| `src/ai/plugins/misc/` | Misc plugin: 20 methods (SNS, AllDomains, Pyth, CoinGecko, GibWork, Send Arcade). |
+| `src/ai/plugins/blinks/` | Blinks plugin: 6 methods (Solana Actions spec). |
+| `src/ai/mcp/types.ts` | MCP protocol types (JSON-RPC, tools, resources, prompts, transports). |
+| `src/ai/mcp/server.ts` | `SynapseMcpServer` — expose SynapseAgentKit as MCP server (stdio + SSE). |
+| `src/ai/mcp/client.ts` | `McpClientBridge` — connect to external MCP servers, import tools. |
 
 ### utils/
 
@@ -375,6 +408,143 @@ const solanaFacilitators = findFacilitatorsByNetwork('solana:5eykt4UsFv8P8NJdTRE
 
 ---
 
+## Plugin System (SynapseAgentKit)
+
+The v2 plugin system provides **110 Solana-native tools** across 5 plugins and 18 protocols, all composable via a chainable `.use()` API:
+
+```ts
+import {
+  SynapseAgentKit,
+  TokenPlugin, NFTPlugin, DeFiPlugin, MiscPlugin, BlinksPlugin,
+} from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins';
+
+const kit = new SynapseAgentKit({ rpcUrl: process.env.RPC_URL! })
+  .use(TokenPlugin)
+  .use(NFTPlugin)
+  .use(DeFiPlugin)
+  .use(MiscPlugin)
+  .use(BlinksPlugin);
+
+// LangChain
+const tools = kit.getTools();            // StructuredTool[] (110 tools)
+
+// Vercel AI SDK
+const vercelTools = kit.getVercelAITools();
+
+// MCP descriptors
+const mcpTools = kit.getMcpToolDescriptors();
+
+// Introspection
+console.log(kit.summary());
+// → { plugins: 5, protocols: 18, tools: 110, resources: [...] }
+```
+
+### Plugin catalog
+
+| Plugin | Protocols | Tools | Coverage |
+|--------|-----------|-------|----------|
+| **TokenPlugin** | `spl-token`, `staking`, `bridging` | 22 | Deploy, transfer, mint, burn, freeze, stake (SOL/JupSOL/Solayer), bridge (Wormhole/deBridge) |
+| **NFTPlugin** | `metaplex-nft`, `3land`, `das` | 19 | Deploy collections, mint, update metadata, verify, 3Land marketplace, DAS queries |
+| **DeFiPlugin** | `pump`, `raydium-pools`, `orca`, `manifest`, `meteora`, `openbook`, `drift`, `adrena`, `lulo`, `jito` | 43 | AMM/CLMM pools, swaps, limit orders, perps, lending, MEV bundles |
+| **MiscPlugin** | `sns`, `alldomains`, `pyth`, `coingecko`, `gibwork`, `send-arcade` | 20 | Domain resolution (SNS/AllDomains), oracle prices, market data, bounties, gaming |
+| **BlinksPlugin** | `blinks` | 6 | Solana Actions spec: GET/POST actions, resolve dial.to, validate actions.json |
+
+### Custom plugins
+
+```ts
+import { SynapsePlugin, PluginContext } from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins';
+import { createMethodRegistry } from '@oobe-protocol-labs/synapse-client-sdk/ai';
+import { z } from 'zod';
+
+const MyPlugin: SynapsePlugin = {
+  meta: { id: 'my-plugin', name: 'My Plugin', version: '1.0.0' },
+  protocols: [{
+    id: 'my-protocol',
+    name: 'My Protocol',
+    methods: createMethodRegistry('my-protocol').methods,
+    requiresClient: true,
+  }],
+  install(context: PluginContext) {
+    return {
+      executor: async (method, input) => {
+        const transport = context.client.transport;
+        return transport.request(method.name, [input]);
+      },
+    };
+  },
+};
+
+kit.use(MyPlugin);
+```
+
+See [10_PLUGINS.md](./docs_md/10_PLUGINS.md) for the full plugin guide.
+
+---
+
+## MCP (Model Context Protocol)
+
+The SDK is a fully spec-compliant MCP server and client — zero external MCP dependencies.
+
+### Expose tools as MCP server
+
+```ts
+import { SynapseAgentKit, TokenPlugin, DeFiPlugin } from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins';
+import { SynapseMcpServer } from '@oobe-protocol-labs/synapse-client-sdk/ai/mcp';
+
+const kit = new SynapseAgentKit({ rpcUrl: process.env.RPC_URL! })
+  .use(TokenPlugin)
+  .use(DeFiPlugin);
+
+// stdio transport — Claude Desktop, Cursor, VS Code
+const server = new SynapseMcpServer(kit, {
+  name: 'synapse-solana',
+  version: '2.0.0',
+});
+await server.start();
+
+// OR SSE transport — web-based MCP clients
+await server.startSse({ port: 3001 });
+```
+
+### Connect to external MCP servers
+
+```ts
+import { McpClientBridge } from '@oobe-protocol-labs/synapse-client-sdk/ai/mcp';
+
+const bridge = new McpClientBridge();
+
+// Connect to GitHub MCP server
+await bridge.connect({
+  id: 'github',
+  name: 'GitHub',
+  transport: 'stdio',
+  command: 'npx',
+  args: ['-y', '@modelcontextprotocol/server-github'],
+  env: { GITHUB_PERSONAL_ACCESS_TOKEN: process.env.GITHUB_TOKEN! },
+  toolPrefix: 'github_',
+});
+
+// Connect to Postgres MCP server
+await bridge.connect({
+  id: 'postgres',
+  name: 'PostgreSQL',
+  transport: 'stdio',
+  command: 'npx',
+  args: ['-y', '@modelcontextprotocol/server-postgres', process.env.DATABASE_URL!],
+  toolPrefix: 'pg_',
+});
+
+// Get LangChain tools from all connected servers
+const remoteTools = bridge.getTools();
+
+// Or add as a plugin to SynapseAgentKit
+kit.use(bridge.toPlugin());
+```
+
+See [11_MCP.md](./docs_md/11_MCP.md) for the full MCP guide.
+
+---
+
 ## Testing
 
 The project uses [Vitest](https://vitest.dev/) with 378 tests across 10 suites.
@@ -455,7 +625,14 @@ The package exposes granular entry points for consumers that need only a subset:
   "./grpc":       "GrpcTransport + Geyser parser",
   "./das":        "DasClient + 11 DAS method functions",
   "./websocket":  "WsClient + subscription types",
-  "./utils":      "Helpers + endpoint resolution"
+  "./utils":      "Helpers + endpoint resolution",
+  "./ai/plugins": "SynapseAgentKit + all 5 plugins",
+  "./ai/plugins/token":  "TokenPlugin (22 tools)",
+  "./ai/plugins/nft":    "NFTPlugin (19 tools)",
+  "./ai/plugins/defi":   "DeFiPlugin (43 tools)",
+  "./ai/plugins/misc":   "MiscPlugin (20 tools)",
+  "./ai/plugins/blinks": "BlinksPlugin (6 tools)",
+  "./ai/mcp":     "MCP server + client bridge"
 }
 ```
 
@@ -473,6 +650,12 @@ import { getBalance } from '@oobe-protocol-labs/synapse-client-sdk/rpc';
 
 // WebSocket only
 import { WsClient } from '@oobe-protocol-labs/synapse-client-sdk/websocket';
+
+// Plugin system (110 Solana-native tools)
+import { SynapseAgentKit, TokenPlugin, DeFiPlugin } from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins';
+
+// MCP server + client
+import { SynapseMcpServer, McpClientBridge } from '@oobe-protocol-labs/synapse-client-sdk/ai/mcp';
 ```
 
 ---
@@ -485,7 +668,25 @@ import { WsClient } from '@oobe-protocol-labs/synapse-client-sdk/websocket';
 | Changelog | [CHANGELOG.md](./CHANGELOG.md) |
 | Contributing guide | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 | AI skill guides | `src/ai/skills/` (10 markdown files) |
+| Architecture guides | `docs_md/` (11 markdown files) |
 | Example scripts | `examples/` |
+
+Architecture guides (in `docs_md/`):
+
+| File | Topic |
+|------|-------|
+| `00_SYNAPSE_CLIENT_SDK.md` | SDK overview and design philosophy |
+| `01_CORE.md` | Core client, transport, branded types |
+| `02_RPC.md` | 53 Solana JSON-RPC methods |
+| `03_AI_TOOLS.md` | LangChain tools + protocol factories |
+| `04_AI_GATEWAY.md` | Agent commerce, sessions, x402 payments |
+| `05_SAP.md` | Synapse Anchor Protocol |
+| `06_INTENTS.md` | Cross-protocol intent resolver |
+| `07_ACTIONS_BLINKS.md` | Solana Actions server + Blink generator |
+| `08_PERSISTENCE.md` | State persistence layer |
+| `09_PIPELINES.md` | End-to-end integration patterns |
+| `10_PLUGINS.md` | Plugin system (SynapseAgentKit) |
+| `11_MCP.md` | MCP server + client bridge |
 
 Skill guides (in `src/ai/skills/`):
 
@@ -558,6 +759,18 @@ src/
         client.ts                 Buyer-side client
         facilitator.ts            Settlement verification
         registry.ts               Known facilitators
+    plugins/
+      types.ts                    Plugin system core types
+      registry.ts                 SynapseAgentKit (.use() chainable)
+      token/                      Token plugin (22 methods)
+      nft/                        NFT plugin (19 methods)
+      defi/                       DeFi plugin (43 methods, 10 protocols)
+      misc/                       Misc plugin (20 methods, 6 protocols)
+      blinks/                     Blinks plugin (6 methods)
+    mcp/
+      types.ts                    MCP protocol types (JSON-RPC 2.0)
+      server.ts                   SynapseMcpServer (stdio + SSE)
+      client.ts                   McpClientBridge (external servers)
     skills/                       10 markdown skill guides
   utils/
     helpers.ts                    lamportsToSol, sleep, chunk, retry
