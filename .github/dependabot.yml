@@ -11,7 +11,9 @@ updates:
       day: "monday"
     open-pull-requests-limit: 10
     reviewers:
-      - "keepeeto"
+      - "CryptoFamilyNFT"
+      - "OhAndre00"
+      - "jmauix"
     labels:
       - "dependencies"
     commit-message:
