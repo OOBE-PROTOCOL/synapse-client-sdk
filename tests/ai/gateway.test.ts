@@ -19,21 +19,19 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   AgentGateway,
   createAgentGateway,
-  GatewayError,
   SessionNotFoundError,
   MaxSessionsError,
   IntentVerificationError,
 } from '../../src/ai/gateway/index';
 import { DEFAULT_TIERS } from '../../src/ai/gateway/pricing';
 import { AgentId } from '../../src/ai/gateway/types';
-import type { GatewayEvent, GatewayConfig } from '../../src/ai/gateway/types';
+import type { GatewayEvent } from '../../src/ai/gateway/types';
 import {
   MockSynapseClient,
   makeGatewayConfig,
   makePaymentIntent,
   makeTier,
   makeMockSigner,
-  makeIdentity,
 } from './_helpers';
 
 describe('AgentGateway', () => {
@@ -91,7 +89,7 @@ describe('AgentGateway', () => {
       })).toThrow(IntentVerificationError);
 
       // Custom verifier that always passes (even with wrong seller)
-      const wrongIntent = makePaymentIntent(AgentId('wrong'), { seller: sellerId });
+      makePaymentIntent(AgentId('wrong'), { seller: sellerId });
       // Doesn't matter — custom verifier overrides
       const session = gateway.openSession(makePaymentIntent(sellerId), {
         verifyIntent: () => true,

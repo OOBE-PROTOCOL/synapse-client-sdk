@@ -383,7 +383,7 @@ describe('Jupiter Tool Factory', () => {
   it('POST tool sends body to correct path', async () => {
     const fetchMock = mockFetch({ swapTransaction: 'base64...', lastValidBlockHeight: 999 });
     const toolkit = createJupiterTools({ fetch: fetchMock });
-    const result = await toolkit.toolMap.swap.invoke({
+    await toolkit.toolMap.swap.invoke({
       userPublicKey: 'Abc123',
       quoteResponse: { test: true },
     });

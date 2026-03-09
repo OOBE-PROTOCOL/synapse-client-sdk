@@ -10,7 +10,7 @@
  * This ensures Node.js ESM *and* webpack/Next.js compatibility.
  */
 
-import { readdir, readFile, writeFile, stat } from 'fs/promises';
+import { readdir, readFile, writeFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';

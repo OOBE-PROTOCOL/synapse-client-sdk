@@ -66,7 +66,6 @@ import {
   parseSlotUpdate,
   parseBlockMeta,
   parseEntry,
-  parseTimestamp,
 } from './decoder';
 
 /* ═══════════════════════════════════════════════════════════════

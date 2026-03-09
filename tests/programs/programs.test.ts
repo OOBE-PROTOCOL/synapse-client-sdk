@@ -134,7 +134,6 @@ describe('InstructionWriter', () => {
   });
 
   it('tracks position correctly through mixed writes', () => {
-    const w = new InstructionWriter(45); // 1 + 2 + 4 + 8 + 8 + 32 = 55 — let's be precise
     const w2 = new InstructionWriter(1 + 2 + 4 + 8 + 32);
     w2.u8(0); // 1
     expect(w2.position).toBe(1);

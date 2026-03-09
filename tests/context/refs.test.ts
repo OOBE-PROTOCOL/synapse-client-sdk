@@ -18,7 +18,6 @@ import {
   // Context
   SynapseContext,
   createToken,
-  createBareContext,
 
   // Refs
   ServiceRef,
@@ -52,7 +51,6 @@ interface Logger { log(msg: string): void; level: string; }
 const RPC = createToken<RpcService>('RPC');
 const DAS = createToken<DasService>('DAS');
 const LOGGER = createToken<Logger>('Logger');
-const COUNTER = createToken<{ count: number }>('Counter');
 
 function mockRpc(): RpcService {
   return { getBalance: vi.fn(() => 1000), getSlot: vi.fn(() => 42) };

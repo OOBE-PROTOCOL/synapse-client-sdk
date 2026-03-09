@@ -43,10 +43,10 @@ import type {
   X402PipelineStep,
 } from './types';
 
-import { AgentSession, SessionError } from './session';
-import { PricingEngine, DEFAULT_TIERS } from './pricing';
+import { AgentSession } from './session';
+import { PricingEngine } from './pricing';
 import { ResponseValidator } from './validator';
-import { ToolMarketplace, type MarketplaceQuery, type MarketplaceStats } from './marketplace';
+import { ToolMarketplace, type MarketplaceStats } from './marketplace';
 
 /* ── x402 imports (lazy-loaded for modularity) ────────────── */
 import type { X402Config, X402PaymentPayload, X402PaymentRequirements, X402SettlementResponse, X402ClientConfig } from './x402';

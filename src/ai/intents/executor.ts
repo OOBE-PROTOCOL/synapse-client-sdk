@@ -42,7 +42,7 @@ import type {
   StepStatus,
   IntentResultStatus,
 } from './types';
-import { IntentError, UnresolvedReferenceError, BudgetExceededError } from './types';
+import { IntentError, UnresolvedReferenceError } from './types';
 
 /* ═══════════════════════════════════════════════════════════════
  *  Reference Resolver

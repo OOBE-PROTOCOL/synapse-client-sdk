@@ -192,7 +192,7 @@ export class SynapseAgentKit {
     const map: Record<string, ProtocolTool> = {};
     for (const id of this._pluginOrder) {
       const installed = this._plugins.get(id)!;
-      for (const [protoId, toolkit] of Object.entries(installed.toolkits)) {
+      for (const [, toolkit] of Object.entries(installed.toolkits)) {
         Object.assign(map, toolkit.toolMap);
       }
     }

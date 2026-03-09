@@ -29,7 +29,7 @@
  */
 
 import type { Intent, IntentPlan, PlannedStep, IntentStep } from './types';
-import { IntentError, CyclicDependencyError } from './types';
+import { CyclicDependencyError } from './types';
 
 /* ═══════════════════════════════════════════════════════════════
  *  Cost estimation defaults

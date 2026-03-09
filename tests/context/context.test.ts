@@ -25,9 +25,6 @@ import {
   createBareContext,
   Tokens,
 
-  // Providers
-  createSynapseContext,
-
   // Hooks
   setGlobalContext,
   getContext,
@@ -60,11 +57,9 @@ import {
 
 interface Logger { log(msg: string): void; level: string; }
 interface Database { query(sql: string): string; }
-interface Cache { get(key: string): string | undefined; set(key: string, val: string): void; }
 
 const LOGGER = createToken<Logger>('Logger');
 const DB = createToken<Database>('Database');
-const CACHE = createToken<Cache>('Cache');
 const COUNTER = createToken<{ count: number }>('Counter');
 const ASYNC_SVC = createToken<{ ready: boolean }>('AsyncService');
 
@@ -467,7 +462,7 @@ describe('SynapseContext — Disposal', () => {
 
   it('dispose is idempotent', async () => {
     const ctx = new SynapseContext();
-    const count1 = await ctx.dispose();
+    await ctx.dispose();
     const count2 = await ctx.dispose();
     expect(count2).toBe(0);
   });

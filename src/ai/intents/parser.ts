@@ -28,7 +28,6 @@
 
 import { randomUUID } from 'crypto';
 import type { Intent, IntentStep, StepReference } from './types';
-import { IntentError } from './types';
 
 /* ═══════════════════════════════════════════════════════════════
  *  Validation Result
