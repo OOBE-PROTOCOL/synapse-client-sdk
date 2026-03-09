@@ -56,10 +56,8 @@ import {
 } from './types';
 import {
   ServiceRef,
-  WeakServiceRef,
   RefRegistry,
   MemoryGuard,
-  type RefRegistryConfig,
   type MemoryGuardConfig,
   type ServiceBinding,
   createBinding,

@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 import type { Pubkey, Lamports } from '../core/types';
-import { Pubkey as mkPubkey, Lamports as mkLamports } from '../core/types';
+import { Lamports as mkLamports } from '../core/types';
 
 /**
  * Convert lamports to SOL (9 decimal places).

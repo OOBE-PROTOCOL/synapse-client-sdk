@@ -336,7 +336,6 @@ describe('autoSelectRegion', () => {
   });
 
   it('handles partial failure (one region down)', async () => {
-    let callCount = 0;
     globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
       if (typeof url === 'string' && url.includes('us-1')) {
         return { ok: true, json: () => Promise.resolve({ result: 'ok' }) };

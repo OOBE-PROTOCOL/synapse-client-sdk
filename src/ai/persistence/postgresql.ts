@@ -44,7 +44,7 @@ import type {
 } from './types';
 import { PersistenceError } from './types';
 import type { GatewaySnapshot } from '../gateway/types';
-import { serialize, deserialize, buildSchema, buildKvCleanupSql, SCHEMA_VERSION } from './helpers';
+import { serialize, buildSchema, buildKvCleanupSql } from './helpers';
 
 /**
  * @description PostgreSQL implementation of {@link PersistenceStore}.

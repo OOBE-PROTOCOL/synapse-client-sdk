@@ -25,7 +25,6 @@ import type { SynapseClientLike } from '../../../../core/client';
 import type { HttpTransport } from '../../../../core/transport';
 import type { Pubkey, Commitment } from '../../../../core/types';
 import { fetchMint } from '../../../../accounts/token';
-import { base64ToBytes } from '../../../../accounts/helpers';
 
 /* ═══════════════════════════════════════════════════════════════
  *  Jupiter Program ID registry

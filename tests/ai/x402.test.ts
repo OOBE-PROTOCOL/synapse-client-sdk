@@ -14,13 +14,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { X402Paywall, encodePaymentHeader, decodePaymentHeader } from '../../src/ai/gateway/x402/paywall';
-import { FacilitatorClient, FacilitatorError } from '../../src/ai/gateway/x402/facilitator';
+import { FacilitatorClient } from '../../src/ai/gateway/x402/facilitator';
 import type {
   X402Config,
   X402PaymentPayload,
   X402PaymentRequirements,
   X402VerifyResponse,
-  X402SettleResponse,
 } from '../../src/ai/gateway/x402/types';
 import {
   SOLANA_MAINNET,

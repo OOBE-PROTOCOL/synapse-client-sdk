@@ -227,7 +227,7 @@ export class McpClientBridge {
   getTools(): StructuredToolInterface[] {
     const tools: StructuredToolInterface[] = [];
 
-    for (const [id, conn] of this.connections) {
+    for (const [, conn] of this.connections) {
       if (conn.status !== 'connected') continue;
       tools.push(...this.buildLangChainTools(conn));
     }

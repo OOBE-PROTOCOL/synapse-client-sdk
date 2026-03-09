@@ -40,8 +40,6 @@ import {
   resolveProgramBatch,
   isProgramInCategory,
   getProgramCategory,
-  SYSTEM_PROGRAMS,
-  JUPITER_PROGRAMS,
   RAYDIUM_PROGRAMS,
   METEORA_PROGRAMS,
   // Class
@@ -51,11 +49,6 @@ import {
 import type {
   RawBuffer,
   RawGeyserUpdate,
-  RawTransactionInfo,
-  RawAccountInfo,
-  RawSlotInfo,
-  RawBlockMeta,
-  RawEntry,
 } from '../../src/grpc/parser/types';
 import { Signature } from '../../src/core/types';
 

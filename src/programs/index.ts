@@ -118,7 +118,6 @@ export {
 // ── Kit bridge ─────────────────────────────────────────────────
 
 import type { TransactionInstruction } from './types';
-import { decodeBase58 } from './types';
 import type { Address, Instruction, AccountMeta as KitAccountMeta } from '@solana/kit';
 import { address as kitAddress, AccountRole } from '@solana/kit';
 

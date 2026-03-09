@@ -48,8 +48,8 @@ SAP v2 is the **first on-chain agent identity, reputation, and discovery protoco
 ### Why This Matters
 
 - **No competitor exists on Solana** — Solana Agent Kit (sendaifun) is action-only, no identity
-- **ERC-8004 on Ethereum is still DRAFT** (Aug 2025) — we ship first on Solana
-- **x402 protocol** (Coinbase, 75M+ transactions) already supports Solana — native integration
+- **ERC-8004 on Ethereum is still DRAFT** (Aug 2025) 
+- **x402 protocol** (Coinbase, 75M+ transactions) already supports Solana native integration
 - **Google A2A** + **Anthropic MCP** compatibility through agentURI service endpoints
 - **Scalable to 100k+ agents** through indexed PDAs (no `getProgramAccounts`)
 

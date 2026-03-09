@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.2] — 2026-03-09
+
+### 🧹 Maintainability
+
+- **chore: remove 42 unused imports, variables & type annotations** — CodeQL flagged 42 instances of
+  unused variables, imports, functions or classes across 25 files (`src/`, `tests/`, `scripts/`).
+  Every unused item has been removed. Zero API surface changes.
+  ([CodeQL js/unused-local-variable](https://codeql.github.com/codeql-query-help/javascript/js-unused-local-variable/))
+
+- **fix(docs): sanitize malformed HTML `id` attributes** — Two `id` attributes in the TypeDoc-generated
+  `pipe.html` contained spaces and colons (`id="Example: Basic"`). Replaced with valid kebab-case
+  identifiers to ensure consistent cross-browser anchor behaviour.
+  ([CodeQL js/malformed-id-attribute](https://codeql.github.com/codeql-query-help/javascript/js-malformed-id-attribute/))
+
+### ⚙️ CI / Tooling
+
+- **chore: add Dependabot configuration** — `.github/dependabot.yml` now enables weekly npm and
+  GitHub Actions dependency updates with scoped commit prefixes (`chore(deps)`, `ci`).
+
+No API changes — drop-in replacement for 2.0.1.
+
+---
+
 ## [2.0.1] — 2026-03-09
 
 ### 🔒 Security

@@ -13,7 +13,6 @@ import {
   decodeMint,
   decodeToken2022Account,
   decodeToken2022Mint,
-  TokenExtensionType,
   decodeStakeAccount,
   decodeNonceAccount,
   decodeLookupTable,
@@ -24,7 +23,7 @@ import {
   LOOKUP_TABLE_HEADER_SIZE,
   MULTISIG_SIZE,
 } from '../../src/decoders/index';
-import { Pubkey } from '../../src/core/types';
+
 
 // ── Helpers ────────────────────────────────────────────────────
 

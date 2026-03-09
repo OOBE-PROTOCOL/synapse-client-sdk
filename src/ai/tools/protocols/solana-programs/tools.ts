@@ -26,7 +26,7 @@ import {
 import { solanaProgramsMethods } from './schemas';
 import { Pubkey, type Lamports } from '../../../../core/types';
 import { SystemProgram } from '../../../../programs/system';
-import { SplToken, TOKEN_PROGRAM } from '../../../../programs/spl-token';
+import { SplToken } from '../../../../programs/spl-token';
 import { AssociatedToken } from '../../../../programs/associated-token';
 import { ComputeBudget } from '../../../../programs/compute-budget';
 import { Memo } from '../../../../programs/memo';

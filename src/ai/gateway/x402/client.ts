@@ -30,7 +30,6 @@ import {
   X402_HEADER_PAYMENT_SIGNATURE,
   X402_HEADER_PAYMENT_RESPONSE,
   X402_STATUS_CODE,
-  X402_VERSION,
 } from './types';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -349,10 +348,6 @@ export class X402Client {
 
       // Not a 402 → return as-is
       if (response.status !== X402_STATUS_CODE) {
-        // Check for PAYMENT-RESPONSE header (from a previous payment in this session)
-        const paymentResponseHeader = response.headers.get(X402_HEADER_PAYMENT_RESPONSE)
-          ?? response.headers.get(X402_HEADER_PAYMENT_RESPONSE.toLowerCase());
-
         return { response, payment: null };
       }
 
