@@ -308,7 +308,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.33.0",
     "husky": "^9.1.6",
-    "lint-staged": "^15.2.10",
+    "lint-staged": "^16.3.2",
     "prettier": "^3.3.3",
     "typedoc": "^0.26.10",
     "typescript": "^5.9.2",
