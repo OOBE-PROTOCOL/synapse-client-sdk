@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.1] — 2026-03-09
+
+### 🔒 Security
+
+- **fix(protocols): replace polynomial regex with iterative strip** — `ProtocolHttpClient` constructor
+  used `/\/+$/` to trim trailing slashes from `baseUrl`. CodeQL flagged this as a polynomial ReDoS
+  vector (proportional to `n²` on strings of repeated `/`). Replaced with a safe `while (url.endsWith('/'))` loop.
+  ([CodeQL js/polynomial-redos](https://codeql.github.com/codeql-query-help/javascript/js-polynomial-redos/))
+
+- **fix(actions): prevent stack-trace leakage in error responses** — `ActionsServer.handleRequest()` catch
+  block returned raw `err.message` for all exceptions, potentially exposing internal details.
+  Now only `ActionServerError` messages are forwarded; unexpected errors return a generic
+  `"Internal server error"`.
+  ([CodeQL js/stack-trace-exposure](https://codeql.github.com/codeql-query-help/javascript/js-stack-trace-exposure/))
+
+- **fix(next): sanitize error output in `withSynapseError`** — The Next.js error wrapper exposed
+  `err.message` from arbitrary exceptions. Now only SDK errors (those carrying a `code` property)
+  have their message forwarded; all other errors return `"Internal server error"`.
+  ([CodeQL js/stack-trace-exposure](https://codeql.github.com/codeql-query-help/javascript/js-stack-trace-exposure/))
+
+### Changed
+
+- No API changes — drop-in replacement for 2.0.0.
+
+---
+
 ## [2.0.0] — 2026-03-06
 
 ### ⚡ Breaking Changes
