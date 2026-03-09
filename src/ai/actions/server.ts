@@ -276,9 +276,11 @@ export class ActionServer {
         const result = await action.handler(ctx);
         return this.corsResponse(this.jsonResponse(result));
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        const status = err instanceof ActionServerError ? err.statusCode : 500;
-        return this.corsResponse(this.jsonResponse({ error: message }, status));
+        if (err instanceof ActionServerError) {
+          return this.corsResponse(this.jsonResponse({ error: err.message }, err.statusCode));
+        }
+        // Do not expose internal error details to the client
+        return this.corsResponse(this.jsonResponse({ error: 'Internal server error' }, 500));
       }
     }
 

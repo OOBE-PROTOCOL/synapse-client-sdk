@@ -117,7 +117,9 @@ export class ProtocolHttpClient {
   private readonly _fetch: typeof globalThis.fetch;
 
   constructor(config: ProtocolClientConfig) {
-    this.baseUrl = config.baseUrl.replace(/\/+$/, '');
+    let url = config.baseUrl;
+    while (url.endsWith('/')) url = url.slice(0, -1);
+    this.baseUrl = url;
     this.timeout = config.timeout ?? 30_000;
     this._commonHeaders = {
       Accept: 'application/json',

@@ -113,9 +113,16 @@ export function withSynapseError<T extends Request = Request>(
     try {
       return await handler(req, ...args);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
       const code = (err as { code?: string }).code ?? 'INTERNAL_ERROR';
       const status = (err as { status?: number }).status ?? 500;
+
+      // Only expose the message for known SDK errors (they have a `code`);
+      // for unexpected errors, return a generic message to avoid leaking
+      // stack traces or internal details.
+      const isSdkError = err instanceof Error && 'code' in (err as unknown as Record<string, unknown>);
+      const message = isSdkError
+        ? (err as Error).message
+        : 'Internal server error';
 
       return synapseResponse(
         { error: message, code, timestamp: Date.now() },
