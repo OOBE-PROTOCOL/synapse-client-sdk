@@ -70,7 +70,7 @@ TypeScript is a peer dependency. Ensure `typescript >= 5.0` is installed in your
 import { SynapseClient, Pubkey } from '@oobe-protocol-labs/synapse-client-sdk';
 
 const client = new SynapseClient({
-  endpoint: 'https://rpc.synapse.com',
+  endpoint: 'https://staging.oobeprotocol.ai:8080/rpc?api_key=sk_live_',
   apiKey: 'sk-...',
 });
 
@@ -94,7 +94,7 @@ client.destroy();
 ```ts
 import { createSynapse } from '@oobe-protocol-labs/synapse-client-sdk';
 
-const client = createSynapse({ endpoint: 'https://rpc.synapse.com' });
+const client = createSynapse({ endpoint: 'https://staging.oobeprotocol.ai:8080/rpc?api_key=sk_live_' });
 ```
 
 ```ts
