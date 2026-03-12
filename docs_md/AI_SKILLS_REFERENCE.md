@@ -508,171 +508,129 @@ Discovers and health-checks known x402 facilitators.
 
 ---
 
-## 10. Solana Agent Protocol (SAP)
+## 10. Solana Agent Protocol (SAP) — Integration Bridge
 
 **Module:** `src/ai/sap/`
 
-On-chain agent identity, discovery, and reputation via Solana PDAs.
+> **v2.1.0 breaking change.** The full SAP implementation (PDA derivation,
+> Borsh serialization, instruction builders, discovery, validation,
+> subnetworks, scoring) has moved to the dedicated
+> [`@oobe-protocol-labs/synapse-sap-sdk`](https://github.com/OOBE-PROTOCOL/synapse-sap-sdk).
+>
+> This module now provides a **thin integration bridge** that connects
+> the Synapse Client SDK infrastructure (network resolution, HMR-safe
+> singletons) with the standalone SAP SDK.
 
-### Class: `SAPInstructionBuilder`
+### Class: `SynapseAnchorSap`
 
-Builds Solana instructions for SAP program interactions.
+Bridge class that resolves Synapse endpoints, creates an Anchor provider,
+and initializes a `SapClient` from `@oobe-protocol-labs/synapse-sap-sdk`.
 
-| Method | Returns | Description |
-|---|---|---|
-| `register(params)` | `SAPInstruction` | Build a `register` instruction for a new agent PDA. |
-| `update(params)` | `SAPInstruction` | Build an `update` instruction. |
-| `deactivate(walletPubkey)` | `SAPInstruction` | Build a `deactivate` instruction. |
-| `updateReputation(params)` | `SAPInstruction` | Build an `updateReputation` instruction. |
-| `getProgramId()` | `string` | Get the configured program ID. |
-| `getLastValidationReport()` | `ValidationReport \| null` | Get the last validation report. |
+**Peer dependencies** (optional — only needed when using SAP):
+- `@oobe-protocol-labs/synapse-sap-sdk` ≥ 0.1.0
+- `@coral-xyz/anchor` ≥ 0.30.0
+- `@solana/web3.js` ≥ 1.90.0
 
-### Class: `SAPDiscovery`
-
-Discovers agents from on-chain PDA accounts.
-
-| Method | Returns | Description |
-|---|---|---|
-| `findAgent(walletPubkey)` | `Promise<AgentPDAAccount \| null>` | Find a specific agent by wallet. |
-| `find(filter?)` | `Promise<DiscoveryResult>` | Find agents with optional filters. |
-| `findActive()` | `Promise<DiscoveryResult>` | Find all active agents. |
-| `findByCapability(capId)` | `Promise<DiscoveryResult>` | Find agents by capability. |
-| `findByProtocol(protocol)` | `Promise<DiscoveryResult>` | Find agents by protocol. |
-| `findCheapest(capId)` | `Promise<AgentPDAAccount \| null>` | Find cheapest agent for a capability. |
-| `findMostReputable(capId)` | `Promise<AgentPDAAccount \| null>` | Find most reputable agent for a capability. |
-| `getAggregateMetrics()` | `Promise<SAPAggregateMetrics>` | Aggregate metrics across all agents. |
-
-### Class: `OnChainPersistenceAdapter`
-
-Persistence adapter backed by SAP on-chain PDAs.
+#### Static factories
 
 | Method | Returns | Description |
 |---|---|---|
-| `save(id, data)` | `void` | Queue a write operation. |
-| `load(id)` | `AgentPDAAccount \| null` | Load from on-chain. |
-| `loadAll()` | `AgentPDAAccount[]` | Load all agents from chain. |
-| `remove(id)` | `void` | Queue a removal. |
-| `getDiscovery()` | `SAPDiscovery` | Get underlying discovery instance. |
-| `getPendingWrites()` | `Map` | View pending write queue. |
-| `getRemovedIds()` | `Set<string>` | View pending removals. |
-| `clearPending()` | `void` | Clear pending operations. |
+| `create(config)` | `SynapseAnchorSap` | Create from a `SapBridgeConfig`. Resolves Synapse endpoints automatically. |
+| `fromSynapseClient(client, wallet, opts?)` | `SynapseAnchorSap` | Create by extracting the RPC endpoint from an existing `SynapseClient`. |
 
-### Class: `SAPCapabilityRegistry`
+#### Instance properties
 
-Registry of known agent capabilities with a pre-populated default catalog.
+| Property | Type | Description |
+|---|---|---|
+| `sapClient` | `SapClient` | The underlying SAP SDK client. |
+| `endpoint` | `SynapseEndpoint` | Resolved Synapse endpoint. |
+| `programId` | `string` | SAP program ID in use. |
+| `walletPubkey` | `string` | Wallet public key (base58). |
+| `provider` | `AnchorProvider` | The Anchor provider instance. |
+| `connection` | `Connection` | The Solana connection instance. |
+| `isReady` | `boolean` | Whether the bridge is initialized. |
+
+#### Module getters (proxy to SapClient)
+
+| Getter | SapClient module | Description |
+|---|---|---|
+| `agent` | `AgentModule` | Register, update, deactivate, reactivate, close, reportCalls, fetchStats. |
+| `builder` | `AgentBuilder` | Fluent builder — `.agent('Name').description('...').addCapability(...).register()`. |
+| `session` | `SessionManager` | Memory sessions — start, write, readLatest, seal, close. |
+| `escrow` | `EscrowModule` | x402 escrow — create, deposit, settle, withdraw, close. |
+| `tools` | `ToolSchemaModule` | Tool schema registry — publish, inscribe, update, close. |
+| `discovery` | `DiscoveryRegistry` | Find agents by capability, protocol, wallet. |
+| `feedback` | `FeedbackModule` | On-chain reviews — give, update, revoke. |
+| `attestation` | `AttestationModule` | Web-of-trust attestations — create, revoke. |
+| `program` | `Program` | Direct access to the Anchor `Program` for low-level RPC. |
+
+### Function: `createSapProvider`
+
+HMR-safe singleton factory for Next.js server-side routes.
+Stores the instance on `globalThis` to survive hot-module reloads.
+
+```ts
+function createSapProvider(
+  wallet: SapWallet,
+  config?: SapProviderConfig,
+  opts?: SingletonOptions,
+): () => SynapseAnchorSap;
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `wallet` | `SapWallet` | Server wallet with signing capability. |
+| `config` | `SapProviderConfig` | Network, region, SAP config (extends `SapBridgeConfig` without `wallet`). |
+| `opts` | `SingletonOptions` | Singleton options (version for cache busting). |
+
+### Function: `createSapContextBlueprint`
+
+React integration blueprint — returns everything needed to wire SAP
+into a React context provider without the SDK depending on React.
+
+```ts
+function createSapContextBlueprint(
+  config?: Omit<SapBridgeConfig, 'wallet'>,
+): SapContextBlueprint;
+```
+
+#### Interface: `SapContextBlueprint`
+
+| Property | Type | Description |
+|---|---|---|
+| `defaultValue` | `SapContextValue<SynapseAnchorSap>` | Default context value (disconnected state). |
+| `createManager()` | `SapStateManager` | Create a state manager for connect/disconnect lifecycle. |
+
+#### Interface: `SapStateManager`
 
 | Method | Returns | Description |
 |---|---|---|
-| `has(id)` | `boolean` | Check if capability exists. |
-| `get(id)` | `CapabilityDefinition \| undefined` | Get capability definition. |
-| `list()` | `CapabilityDefinition[]` | List all capabilities. |
-| `byProtocol(protocol)` | `CapabilityDefinition[]` | Filter by protocol. |
-| `byCategory(category)` | `CapabilityDefinition[]` | Filter by category. |
-| `add(def)` | `void` | Register a new capability. |
-| `remove(id)` | `boolean` | Remove a capability. |
-| `protocols()` | `string[]` | List unique protocols. |
-| `categories()` | `CapabilityCategory[]` | List unique categories. |
+| `connect(wallet)` | `void` | Create a `SynapseAnchorSap` and store it. |
+| `disconnect()` | `void` | Clear the client. |
+| `getValue()` | `SapContextValue<SynapseAnchorSap>` | Get current context snapshot. |
+| `subscribe(listener)` | `() => void` | Subscribe to state changes. Returns unsubscribe fn. |
 
-**Static:** `SAPCapabilityRegistry.default()` — returns pre-populated registry with 30+ capabilities covering Jupiter, Raydium, Marinade, Drift, Solend, Metaplex, AI, Pyth, Switchboard, and payments.
-
-### Class: `SAPValidator`
-
-Validates SAP registration/update parameters before on-chain submission.
-
-| Method | Returns | Description |
-|---|---|---|
-| `validateRegistration(params)` | `ValidationReport` | Validate register parameters. |
-| `validateUpdate(params)` | `ValidationReport` | Validate update parameters. |
-| `validateCapability(cap)` | `ValidationReport` | Validate a single capability. |
-| `validatePricingTier(tier)` | `ValidationReport` | Validate a pricing tier. |
-
-### Class: `SubnetworkBuilder`
-
-Builds agent subnetworks by selecting agents for each required capability.
-
-| Method | Returns | Description |
-|---|---|---|
-| `build(config)` | `Promise<SubnetworkResult>` | Build a subnetwork from config. |
-| `checkHealth(result)` | `Promise<SubnetworkHealth>` | Health-check a built subnetwork. |
-
-### Scoring Functions
-
-| Function | Returns | Description |
-|---|---|---|
-| `computeAgentHealthScore(agent, context?, weights?)` | `AgentHealthScore` | Compute a weighted health score for a single agent. |
-| `computeNetworkAnalytics(agents)` | `NetworkAnalytics` | Compute analytics across multiple agents. |
-
-### PDA Utilities
-
-| Function | Description |
-|---|---|
-| `deriveAgentPDA(walletPubkey, programId)` | Derive agent PDA address from wallet. |
-| `deserializeAgentAccount(address, bytes)` | Deserialize raw account data to `AgentPDAAccount`. |
-| `serializeRegisterData(params)` | Serialize register instruction data. |
-| `serializeUpdateData(params)` | Serialize update instruction data. |
-| `base58Decode(str)` / `base58Encode(bytes)` | Base58 encoding/decoding. |
-| `isOnCurve(pubkey)` | Check if pubkey is on the Ed25519 curve. |
-| `BorshReader` / `BorshWriter` | Borsh serialization helpers. |
-
-### SAP Types
+### SAP Bridge Types
 
 | Type | Description |
 |---|---|
-| `SAPConfig` | Program ID, commitment, max accounts. |
-| `AgentCapability` | Capability ID, description, protocol. |
-| `AgentPricingOnChain` | Per-call pricing with volume curves, rate limits, settlement modes. |
-| `VolumeCurveBreakpoint` | Discount breakpoint (afterCalls, pricePerCall). |
-| `AgentReputationOnChain` | Total calls, avg latency, uptime, score. |
-| `AgentPDAAccount` | Full deserialized on-chain agent account. |
-| `RegisterAgentParams` | Parameters for register instruction. |
-| `UpdateAgentParams` | Parameters for update instruction. |
-| `UpdateReputationParams` | Parameters for reputation update. |
-| `AgentDiscoveryFilter` | Discovery query filters. |
-| `DiscoveryResult` | Discovery query result. |
-| `SAPAggregateMetrics` | Aggregate on-chain metrics. |
-| `SAPInstruction` | Transaction instruction object. |
-| `SAPAccountMeta` | Account metadata for instructions. |
-| `SelectionStrategy` | `'cheapest' \| 'reputable' \| 'fastest' \| 'balanced'` |
-| `SubnetworkConfig` | Capabilities + strategy config. |
-| `CapabilityAssignment` | Agent-to-capability assignment. |
-| `SubnetworkResult` | Built subnetwork with assignments. |
-| `SubnetworkHealth` | Subnetwork health assessment. |
-| `CapabilityCategory` | Category enum string. |
-| `CapabilityIOSchema` | Capability input/output schema definition. |
-| `CapabilityDefinition` | Full capability definition with schemas. |
-| `ValidationSeverity` | `'error' \| 'warning' \| 'info'` |
-| `ValidationIssue` | Single validation issue. |
-| `ValidationReport` | Full validation report (pass/fail + issues). |
-| `SAPValidatorConfig` | Validator configuration. |
-| `HealthScoreBreakdown` | Breakdown of health score components. |
-| `AgentHealthScore` | Agent health score with breakdown. |
-| `NetworkAnalytics` | Network-wide analytics summary. |
-
-### SAP Helper Functions
-
-| Function | Description |
-|---|---|
-| `pdaToIdentity(pda)` | Convert `AgentPDAAccount` to `AgentIdentity`. |
-| `pricingToTier(pricing)` | Convert `AgentPricingOnChain` to gateway `PricingTier`. |
-| `computeCallCost(pricing, callNumber)` | Compute cost of Nth call using volume curve. |
-| `estimateTotalCost(pricing, totalCalls, startingFrom?)` | Estimate total cost with volume curve breakdown. |
+| `SapWallet` | Minimal wallet interface (`publicKey`, `signTransaction`, `signAllTransactions`). |
+| `SapCommitment` | `'processed' \| 'confirmed' \| 'finalized'` |
+| `SapBridgeConfig` | Full bridge config (wallet, network, region, rpcEndpoint, programId, commitment, etc.). |
+| `SapProviderConfig` | `SapBridgeConfig` without `wallet` + optional `version` for cache busting. |
+| `SapContextValue<T>` | React context shape (`client`, `loading`, `error`, `connect`, `disconnect`). |
 
 ### Constants
 
-| Constant | Description |
-|---|---|
-| `SAP_DEFAULT_PROGRAM_ID` | Default SAP program ID placeholder. |
-| `SAP_SEED_PREFIX` | PDA seed prefix `"synapse_agent"`. |
-| `SAP_ACCOUNT_DISCRIMINATOR` | Anchor account discriminator bytes. |
-| `SAP_INSTRUCTION_DISCRIMINATORS` | Instruction discriminators (register, update, deactivate, updateReputation). |
+| Constant | Value | Description |
+|---|---|---|
+| `SAP_PROGRAM_ID` | `'SAPTU7aUXk2AaAdktexae1iuxXpokxzNDBAYYhaVyQL'` | Canonical SAP program ID (mainnet). |
 
 ### Errors
 
 | Error | Description |
 |---|---|
-| `SAPProgramError` | Instruction builder error. |
-| `SAPDiscoveryError` | Discovery query error. |
-| `SAPValidationError` | Validation error. |
+| `SapDependencyError` | Thrown when a required peer dependency (`@solana/web3.js`, `@coral-xyz/anchor`, or `synapse-sap-sdk`) is missing. |
 
 ---
 

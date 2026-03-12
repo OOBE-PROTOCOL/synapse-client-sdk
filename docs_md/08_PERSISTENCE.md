@@ -485,5 +485,5 @@ const gateway = createAgentGateway(client, {
 ## Next Steps
 
 - **[04_AI_GATEWAY.md](./04_AI_GATEWAY.md)** — Use stores with the commerce gateway
-- **[05_SAP.md](./05_SAP.md)** — `OnChainPersistenceAdapter` for on-chain storage
+- **[05_SAP.md](./05_SAP.md)** — SAP integration bridge (`SynapseAnchorSap`) for on-chain agent operations
 - **[09_PIPELINES.md](./09_PIPELINES.md)** — Full production integration patterns

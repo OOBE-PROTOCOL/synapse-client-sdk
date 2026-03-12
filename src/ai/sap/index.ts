@@ -1,155 +1,100 @@
 /**
  * @module ai/sap
- * @description Solana Agent Protocol (SAP) — On-chain agent identity, discovery & reputation.
+ * @description Solana Agent Protocol (SAP) — Integration bridge for `@oobe-protocol-labs/synapse-sap-sdk`.
  *
- * Sub-modules:
- *  - `types`     — PDA account schema, instruction params, filter types
- *  - `pda`       — PDA derivation, Borsh serialization/deserialization
- *  - `program`   — Transaction instruction builders (register, update, deactivate)
- *  - `discovery` — On-chain agent search via `getProgramAccounts`
- *  - `adapter`   — {@link OnChainPersistenceAdapter} for {@link AgentRegistry}
+ * This module provides a **thin integration layer** that connects the
+ * Synapse Client SDK's infrastructure (network resolution, endpoint
+ * registry, HMR-safe singletons) with the standalone SAP SDK for
+ * on-chain agent operations.
  *
- * @example
+ * ## What moved
+ *
+ * The full SAP protocol implementation (PDA derivation, Borsh
+ * serialization, instruction builders, discovery, validation,
+ * subnetworks, scoring) now lives in:
+ *
+ *  - **Protocol (Anchor/Rust)**: https://github.com/OOBE-PROTOCOL/synapse-sap
+ *  - **SAP SDK (TypeScript)**: https://github.com/OOBE-PROTOCOL/synapse-sap-sdk
+ *    → `@oobe-protocol-labs/synapse-sap-sdk`
+ *
+ * ## What this module provides
+ *
+ *  - {@link SynapseAnchorSap} — Bridge class: resolves Synapse endpoints,
+ *    creates an Anchor provider, and initializes a `SapClient` in one call.
+ *    Exposes all SapClient modules as getters (`agent`, `builder`, `session`,
+ *    `escrow`, `tools`, `discovery`, `feedback`, `attestation`).
+ *
+ *  - {@link createSapProvider} — HMR-safe singleton factory for Next.js
+ *    server-side routes (same pattern as `createSynapseProvider`).
+ *
+ *  - {@link createSapContextBlueprint} — React integration blueprint with
+ *    typed context value, state manager, and subscription support — all
+ *    without a React dependency.
+ *
+ * ## Quick start
+ *
+ * @example Standalone (Node.js / scripts)
  * ```ts
- * import {
- *   SAPInstructionBuilder,
- *   SAPDiscovery,
- *   OnChainPersistenceAdapter,
- *   deriveAgentPDA,
- * } from '@oobe-protocol-labs/synapse-client-sdk/ai';
+ * import { SynapseAnchorSap } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
  *
- * // 1. Derive PDA address
- * const pda = deriveAgentPDA(walletPubkey, programId);
- *
- * // 2. Build registration instruction
- * const builder = new SAPInstructionBuilder({ programId });
- * const ix = builder.register({
- *   walletPubkey,
- *   name: 'My DeFi Agent',
- *   description: 'Jupiter + Raydium tools',
- *   capabilities: [{ id: 'jupiter:swap' }, { id: 'raydium:pool_info' }],
- *   pricing: [{ tierId: 'standard', pricePerCall: 1000n, rateLimit: 10, maxCallsPerSession: 100, tokenType: 'USDC' }],
- *   x402Endpoint: 'https://myagent.xyz/.well-known/x402',
- * });
- *
- * // 3. Discover agents on-chain
- * const discovery = new SAPDiscovery(client, { programId });
- * const agents = await discovery.find({ capability: 'jupiter:swap', minReputation: 700 });
- *
- * // 4. Use as persistence adapter for AgentRegistry
- * const adapter = new OnChainPersistenceAdapter(client, { programId });
- * const registry = new AgentRegistry({ adapter });
+ * const sap = SynapseAnchorSap.create({ wallet });
+ * await sap.builder
+ *   .agent('TradeBot')
+ *   .description('Jupiter swap agent')
+ *   .addCapability('jupiter:swap', { protocol: 'jupiter', version: '6.0' })
+ *   .register();
  * ```
  *
- * @since 1.3.0
+ * @example From existing SynapseClient
+ * ```ts
+ * import { SynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
+ * import { SynapseAnchorSap } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+ *
+ * const client = new SynapseClient({ endpoint: process.env.SYNAPSE_RPC! });
+ * const sap = SynapseAnchorSap.fromSynapseClient(client, wallet);
+ * ```
+ *
+ * @example Next.js server-side (HMR-safe)
+ * ```ts
+ * import { createSapProvider } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+ * const getSap = createSapProvider(serverWallet, { network: SynapseNetwork.Mainnet });
+ * const sap = getSap();
+ * ```
+ *
+ * @example Next.js client-side (React context)
+ * ```tsx
+ * import { createSapContextBlueprint } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+ * const blueprint = createSapContextBlueprint({ network: SynapseNetwork.Mainnet });
+ * // Wire into your React provider — see provider.ts JSDoc for full example
+ * ```
+ *
+ * @since 2.1.0
  */
 
 /* ── Types ── */
 export type {
-  SAPConfig,
-  AgentCapability,
-  AgentPricingOnChain,
-  AgentReputationOnChain,
-  AgentPDAAccount,
-  RegisterAgentParams,
-  UpdateAgentParams,
-  UpdateReputationParams,
-  AgentDiscoveryFilter,
-  DiscoveryResult,
-  SAPAggregateMetrics,
-  SAPInstruction,
-  SAPAccountMeta,
-  VolumeCurveBreakpoint,
+  SapWallet,
+  SapCommitment,
+  SapBridgeConfig,
+  SapProviderConfig,
+  SapContextValue,
 } from './types';
 
 export {
-  SAP_DEFAULT_PROGRAM_ID,
-  SAP_SEED_PREFIX,
-  SAP_ACCOUNT_DISCRIMINATOR,
-  SAP_INSTRUCTION_DISCRIMINATORS,
-  pdaToIdentity,
-  pricingToTier,
-  computeCallCost,
-  estimateTotalCost,
+  SAP_PROGRAM_ID,
+  SapDependencyError,
 } from './types';
 
-/* ── PDA ── */
-export type { DerivedPDA } from './pda';
+/* ── Client bridge ── */
+export { SynapseAnchorSap } from './client';
 
-export {
-  deriveAgentPDA,
-  deserializeAgentAccount,
-  serializeRegisterData,
-  serializeUpdateData,
-  base58Decode,
-  base58Encode,
-  isOnCurve,
-  BorshReader,
-  BorshWriter,
-} from './pda';
-
-/* ── Program ── */
-export {
-  SAPInstructionBuilder,
-  SAPProgramError,
-} from './program';
-
-/* ── Discovery ── */
-export {
-  SAPDiscovery,
-  SAPDiscoveryError,
-} from './discovery';
-
-/* ── Adapter ── */
-export {
-  OnChainPersistenceAdapter,
-} from './adapter';
-
-/* ── Registry ── */
+/* ── Provider & React blueprint ── */
 export type {
-  CapabilityCategory,
-  CapabilityIOSchema,
-  CapabilityDefinition,
-} from './registry';
+  SapContextBlueprint,
+  SapStateManager,
+} from './provider';
 
 export {
-  SAPCapabilityRegistry,
-} from './registry';
-
-/* ── Validator ── */
-export type {
-  ValidationSeverity,
-  ValidationIssue,
-  ValidationReport,
-  SAPValidatorConfig,
-} from './validator';
-
-export {
-  SAPValidator,
-  SAPValidationError,
-} from './validator';
-
-/* ── Subnetwork ── */
-export type {
-  SelectionStrategy,
-  SubnetworkConfig,
-  CapabilityAssignment,
-  SubnetworkResult,
-  SubnetworkHealth,
-} from './subnetwork';
-
-export {
-  SubnetworkBuilder,
-} from './subnetwork';
-
-/* ── Scoring ── */
-export type {
-  HealthScoreBreakdown,
-  AgentHealthScore,
-  NetworkAnalytics,
-} from './scoring';
-
-export {
-  computeAgentHealthScore,
-  computeNetworkAnalytics,
-} from './scoring';
+  createSapProvider,
+  createSapContextBlueprint,
+} from './provider';

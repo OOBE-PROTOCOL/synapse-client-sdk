@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.5] — 2026-03-12
+
+### ✨ Added
+
+- **feat(sap): SAP integration bridge for `@oobe-protocol-labs/synapse-sap-sdk`** — The full SAP
+  implementation (PDA derivation, Borsh serialization, instruction builders, discovery, validation,
+  subnetworks, scoring — ~4 000 lines across 9 files) has been removed from this package and replaced
+  with a **thin integration bridge** that wraps the standalone
+  [`synapse-sap-sdk`](https://github.com/OOBE-PROTOCOL/synapse-sap-sdk).
+
+  New exports from `@oobe-protocol-labs/synapse-client-sdk/ai/sap`:
+
+  | Export | Description |
+  |--------|-------------|
+  | `SynapseAnchorSap` | Bridge class — resolves Synapse endpoints, creates Anchor provider, initializes `SapClient` |
+  | `SynapseAnchorSap.create(config)` | Factory with automatic Synapse endpoint resolution |
+  | `SynapseAnchorSap.fromSynapseClient(client, wallet)` | Factory that extracts RPC from existing `SynapseClient` |
+  | `createSapProvider(wallet, config?)` | HMR-safe singleton for Next.js server routes |
+  | `createSapContextBlueprint(config?)` | React context blueprint (no React dependency in SDK) |
+  | `SAP_PROGRAM_ID` | Canonical mainnet program ID |
+  | `SapDependencyError` | Clear error when peer deps are missing |
+  | `SapWallet` / `SapBridgeConfig` / `SapContextValue<T>` | Type exports |
+
+  All `SapClient` modules are proxied as getters: `.agent`, `.builder`, `.session`, `.escrow`,
+  `.tools`, `.discovery`, `.feedback`, `.attestation`, `.program`.
+
+- **feat(sap): full DApp wallet integration support** — `SapWallet` interface is directly compatible
+  with `@solana/wallet-adapter-react`'s `useWallet()`, enabling Phantom, Solflare, Backpack,
+  WalletConnect, and Ledger wallets to connect to SAP on-chain protocol for agent sign-in,
+  registration, discovery, and reputation management.
+
+### ⚠️ Breaking (SAP module only)
+
+- **Removed:** `SAPInstructionBuilder`, `SAPDiscovery`, `SAPCapabilityRegistry`, `SAPValidator`,
+  `SubnetworkBuilder`, `OnChainPersistenceAdapter`, `computeAgentHealthScore`,
+  `computeNetworkAnalytics`, `deriveAgentPDA`, `BorshReader`, `BorshWriter`,
+  `SAP_DEFAULT_PROGRAM_ID`, and all related types/errors.
+  **Migration:** Install `@oobe-protocol-labs/synapse-sap-sdk` and use `SynapseAnchorSap` as the
+  entry point. All removed functionality is available through the SAP SDK's `SapClient` modules.
+
+### 📦 Dependencies
+
+- **peer:** Added optional `@oobe-protocol-labs/synapse-sap-sdk` (≥0.1.0), `@coral-xyz/anchor`
+  (≥0.30.0), `@solana/web3.js` (≥1.90.0) — all three are optional and only needed when using SAP.
+
+### 📝 Documentation
+
+- Rewrote `docs_md/05_SAP.md` to match new bridge API with Next.js integration guide
+- Updated `docs_md/AI_SKILLS_REFERENCE.md` Section 10 with new API surface
+- Updated pipeline examples in `docs_md/09_PIPELINES.md`
+- Updated `skills.md` with SAP Operations Guide (Section 26) and DApp Wallet Integration (Section 27)
+
+---
+
+## [2.0.2] — 2026-03-09
+
+### 🧹 Maintainability
+
+- **chore: remove 42 unused imports, variables & type annotations** — CodeQL flagged 42 instances of
+  unused variables, imports, functions or classes across 25 files (`src/`, `tests/`, `scripts/`).
+  Every unused item has been removed. Zero API surface changes.
+  ([CodeQL js/unused-local-variable](https://codeql.github.com/codeql-query-help/javascript/js-unused-local-variable/))
+
+- **fix(docs): sanitize malformed HTML `id` attributes** — Two `id` attributes in the TypeDoc-generated
+  `pipe.html` contained spaces and colons (`id="Example: Basic"`). Replaced with valid kebab-case
+  identifiers to ensure consistent cross-browser anchor behaviour.
+  ([CodeQL js/malformed-id-attribute](https://codeql.github.com/codeql-query-help/javascript/js-malformed-id-attribute/))
+
+### ⚙️ CI / Tooling
+
+- **chore: add Dependabot configuration** — `.github/dependabot.yml` now enables weekly npm and
+  GitHub Actions dependency updates with scoped commit prefixes (`chore(deps)`, `ci`).
+
+No API changes — drop-in replacement for 2.0.1.
+
+---
+
 ## [2.0.1] — 2026-03-09
 
 ### 🔒 Security

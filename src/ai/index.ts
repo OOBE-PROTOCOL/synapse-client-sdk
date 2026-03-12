@@ -249,51 +249,29 @@ export {
   getRaydiumTools,
 } from './lazy';
 
-// ── Solana Agent Protocol (SAP) ───────────────────────────────
+// ── Solana Agent Protocol (SAP) — Integration Bridge ──────────
 export {
+  // Client bridge
+  SynapseAnchorSap,
+
+  // Provider & React blueprint
+  createSapProvider,
+  createSapContextBlueprint,
+
+  // Constants
+  SAP_PROGRAM_ID,
+
+  // Error
+  SapDependencyError,
+
   // Types
-  SAP_DEFAULT_PROGRAM_ID,
-  SAP_SEED_PREFIX,
-  SAP_ACCOUNT_DISCRIMINATOR,
-  SAP_INSTRUCTION_DISCRIMINATORS,
-  pdaToIdentity,
-  pricingToTier,
-  type SAPConfig,
-  type AgentCapability,
-  type AgentPricingOnChain,
-  type AgentReputationOnChain,
-  type AgentPDAAccount,
-  type RegisterAgentParams,
-  type UpdateAgentParams,
-  type UpdateReputationParams,
-  type AgentDiscoveryFilter,
-  type DiscoveryResult,
-  type SAPAggregateMetrics,
-  type SAPInstruction,
-  type SAPAccountMeta,
-
-  // PDA derivation & serialization
-  deriveAgentPDA,
-  deserializeAgentAccount,
-  serializeRegisterData,
-  serializeUpdateData,
-  base58Decode,
-  base58Encode,
-  isOnCurve,
-  BorshReader,
-  BorshWriter,
-  type DerivedPDA,
-
-  // Instruction builder
-  SAPInstructionBuilder,
-  SAPProgramError,
-
-  // Discovery
-  SAPDiscovery,
-  SAPDiscoveryError,
-
-  // On-chain adapter
-  OnChainPersistenceAdapter,
+  type SapWallet,
+  type SapCommitment,
+  type SapBridgeConfig,
+  type SapProviderConfig,
+  type SapContextValue,
+  type SapContextBlueprint,
+  type SapStateManager,
 } from './sap';
 
 // ── Cross-Protocol Intent Resolver ────────────────────────────

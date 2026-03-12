@@ -52,6 +52,8 @@ All SDK methods, WebSocket connections, and gRPC streams use this authenticated 
 23. [@solana/kit Bridge](#23-solanakit-bridge)
 24. [Next.js Integration](#24-nextjs-integration)
 25. [Common Patterns](#25-common-patterns)
+26. [SAP Agent Operations Guide](#26-sap-agent-operations-guide)
+27. [DApp Wallet Integration (Phantom / Solflare / WalletConnect)](#27-dapp-wallet-integration-phantom--solflare--walletconnect)
 
 ---
 
@@ -1034,25 +1036,71 @@ import { IntentParser, IntentPlanner, IntentExecutor } from '@oobe-protocol-labs
 
 ## 18. SAP — Synapse Agent Protocol
 
-On-chain agent registry, discovery, and scoring.
+Integration bridge to `@oobe-protocol-labs/synapse-sap-sdk` — provides Synapse endpoint resolution, HMR-safe singletons, and React context blueprints.
+
+> The full SAP protocol implementation (Anchor/Rust program, PDA derivation, Borsh
+> serialization, instruction builders) now lives in the dedicated
+> [`synapse-sap-sdk`](https://github.com/OOBE-PROTOCOL/synapse-sap-sdk).
+> This module wraps it for seamless usage within the Synapse Client SDK ecosystem.
 
 ```ts
 import {
-  SapRegistry,
-  SapDiscovery,
-  SapValidator,
-  SapScoring,
-  SapSubnetwork,
+  SynapseAnchorSap,
+  createSapProvider,
+  createSapContextBlueprint,
+  SAP_PROGRAM_ID,
+  SapDependencyError,
 } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
 ```
 
-| Class | Key Methods | Description |
-|-------|-------------|-------------|
-| `SapRegistry` | `register()`, `update()`, `deregister()`, `resolve()` | On-chain agent registry |
-| `SapDiscovery` | `discover()`, `findByCapability()`, `findByScore()` | Agent discovery |
-| `SapValidator` | `validate()`, `challenge()`, `score()` | Agent behavior validation |
-| `SapScoring` | `calculate()`, `getHistory()`, `getLeaderboard()` | Reputation scoring |
-| `SapSubnetwork` | `create()`, `join()`, `leave()`, `broadcast()` | Agent subnetworks |
+**Peer dependencies** (optional — only needed when using SAP):
+```bash
+npm i @oobe-protocol-labs/synapse-sap-sdk @coral-xyz/anchor @solana/web3.js
+```
+
+### SynapseAnchorSap
+
+| Factory | Returns | Description |
+|---------|---------|-------------|
+| `SynapseAnchorSap.create(config)` | `SynapseAnchorSap` | Create from `SapBridgeConfig` — resolves Synapse endpoints automatically |
+| `SynapseAnchorSap.fromSynapseClient(client, wallet, opts?)` | `SynapseAnchorSap` | Extract RPC from existing `SynapseClient` |
+
+| Getter | SapClient Module | Description |
+|--------|------------------|-------------|
+| `.agent` | `AgentModule` | Register, update, deactivate, reactivate, close, reportCalls, fetchStats |
+| `.builder` | `AgentBuilder` | Fluent builder — `.agent('Name').description('...').addCapability(...).register()` |
+| `.session` | `SessionManager` | Memory sessions — start, write, readLatest, seal, close |
+| `.escrow` | `EscrowModule` | x402 escrow — create, deposit, settle, withdraw, close |
+| `.tools` | `ToolSchemaModule` | Tool schema registry — publish, inscribe, update, close |
+| `.discovery` | `DiscoveryRegistry` | Find agents by capability, protocol, wallet |
+| `.feedback` | `FeedbackModule` | On-chain reviews — give, update, revoke |
+| `.attestation` | `AttestationModule` | Web-of-trust attestations — create, revoke |
+| `.program` | `Program` | Direct Anchor `Program` for low-level RPC |
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `sapClient` | `SapClient` | Underlying SAP SDK client |
+| `endpoint` | `SynapseEndpoint` | Resolved endpoint |
+| `programId` | `string` | SAP program ID |
+| `walletPubkey` | `string` | Wallet pubkey (base58) |
+| `provider` | `AnchorProvider` | Anchor provider |
+| `connection` | `Connection` | Solana connection |
+| `isReady` | `boolean` | Initialization status |
+
+### Helpers
+
+| Function | Description |
+|----------|-------------|
+| `createSapProvider(wallet, config?, opts?)` | HMR-safe singleton for Next.js server routes |
+| `createSapContextBlueprint(config?)` | React context blueprint (no React dependency) |
+
+| Type | Description |
+|------|-------------|
+| `SapWallet` | Wallet interface (`publicKey`, `signTransaction`, `signAllTransactions`) |
+| `SapBridgeConfig` | Full config (wallet, network, region, rpcEndpoint, programId, commitment) |
+| `SapContextValue<T>` | React context shape (client, loading, error, connect, disconnect) |
+| `SapDependencyError` | Missing peer dependency error |
+| `SAP_PROGRAM_ID` | `'SAPTU7aUXk2AaAdktexae1iuxXpokxzNDBAYYhaVyQL'` (mainnet) |
 
 ---
 
@@ -1353,6 +1401,822 @@ const allTools = kit.getTools();
 
 ---
 
+## 26. SAP Agent Operations Guide
+
+This section documents the **complete operational workflow** for deploying a production-ready SAP agent on Solana — from wallet generation to tool publishing, x402 monetization, and network discovery.
+
+### Step 1 — Generate a Dedicated Agent Wallet
+
+Every SAP agent needs its own Solana keypair. **Never reuse your personal wallet** — the agent wallet signs on-chain transactions autonomously.
+
+```bash
+# Generate a new keypair and save to a secure location
+solana-keygen new --outfile secrets/agent-wallet.json --no-bip39-passphrase
+
+# Display the public key
+solana-keygen pubkey secrets/agent-wallet.json
+```
+
+Or programmatically:
+
+```ts
+import { Keypair } from '@solana/web3.js';
+import { writeFileSync } from 'fs';
+
+const kp = Keypair.generate();
+writeFileSync(
+  'secrets/agent-wallet.json',
+  JSON.stringify(Array.from(kp.secretKey)),
+);
+console.log('Agent pubkey:', kp.publicKey.toBase58());
+```
+
+**Security rules:**
+- Store the keypair JSON in `secrets/` — add `secrets/*.json` to `.gitignore`
+- Set env vars for cluster and pubkey, never the private key in `.env`:
+  ```env
+  SAP_AGENT_CLUSTER=mainnet
+  SAP_AGENT_WALLET=<AGENT_PUBKEY>
+  ```
+- For production: use a `.env.production` with `SAP_AGENT_CLUSTER=mainnet` and the funded mainnet wallet
+- For development: use a `.env.local` with `SAP_AGENT_CLUSTER=devnet` — fund via [faucet.solana.com](https://faucet.solana.com)
+
+### Step 2 — Fund the Wallet
+
+The agent wallet needs SOL to pay transaction fees:
+
+| Cluster | Minimum SOL | How to fund |
+|---------|-------------|-------------|
+| Devnet | ~0.05 SOL | `solana airdrop 1 <PUBKEY> --url devnet` or [faucet.solana.com](https://faucet.solana.com) |
+| Mainnet | ~0.2 SOL | Transfer from any funded wallet |
+
+> Registration costs ~0.003 SOL (rent for PDA). Each tool publish / session write costs ~0.001 SOL. Budget ≥0.2 SOL for mainnet to cover registration + initial operations.
+
+### Step 3 — Register the Agent on SAP
+
+Create a registration script that:
+1. Loads the wallet from `secrets/agent-wallet.json`
+2. Connects to SAP via `SynapseAnchorSap`
+3. Defines capabilities, pricing, and protocols
+4. Registers and persists the result
+
+```ts
+// scripts/register-sap-agent.ts
+import { Keypair } from '@solana/web3.js';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import {
+  SynapseAnchorSap,
+  SAP_PROGRAM_ID,
+  type SapWallet,
+} from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+import { SynapseNetwork } from '@oobe-protocol-labs/synapse-client-sdk';
+
+// ── Load wallet ───────────────────────────────────────────
+const secret = JSON.parse(readFileSync('secrets/agent-wallet.json', 'utf-8'));
+const kp = Keypair.fromSecretKey(Uint8Array.from(secret));
+
+const wallet: SapWallet = {
+  publicKey: kp.publicKey,
+  signTransaction: async (tx) => { tx.partialSign(kp); return tx; },
+  signAllTransactions: async (txs) => { txs.forEach(t => t.partialSign(kp)); return txs; },
+};
+
+// ── Determine cluster ────────────────────────────────────
+const cluster = process.env.SAP_AGENT_CLUSTER ?? 'mainnet';
+const network = cluster === 'devnet' ? SynapseNetwork.Devnet : SynapseNetwork.Mainnet;
+
+// ── Connect to SAP ───────────────────────────────────────
+const sap = SynapseAnchorSap.create({
+  wallet,
+  network,
+  commitment: 'confirmed',
+  debug: true,
+});
+
+// ── Check if already registered ──────────────────────────
+const existing = await sap.agent.fetch().catch(() => null);
+if (existing) {
+  console.log('Agent already registered. PDA:', existing.address);
+  process.exit(0);
+}
+
+// ── Register ─────────────────────────────────────────────
+const result = await sap.builder
+  .agent('MyAgent')
+  .description('Production Solana agent with x402 monetization')
+  .addCapability('synapse:actions', {
+    protocol: 'synapse',
+    version: '2.0',
+    description: 'Solana Actions builder and gating',
+  })
+  .addCapability('sap:rooms', {
+    protocol: 'sap',
+    version: '1.0',
+    description: 'Shared-state chat rooms for agents',
+  })
+  .addPricingTier({
+    tierId: 'standard',
+    pricePerCall: 0,            // free tier — set > 0 for monetization
+    rateLimit: 60,
+    tokenType: 'sol',
+    settlementMode: 'x402',
+  })
+  .register();
+
+console.log('Registered!', {
+  agentPda: result.agentPda,
+  signature: result.signature,
+});
+
+// ── Persist metadata ─────────────────────────────────────
+writeFileSync('secrets/sap-agent.json', JSON.stringify({
+  cluster,
+  wallet: kp.publicKey.toBase58(),
+  agentPda: result.agentPda,
+  signature: result.signature,
+  programId: SAP_PROGRAM_ID,
+  capabilities: ['synapse:actions', 'sap:rooms'],
+  registeredAt: new Date().toISOString(),
+}, null, 2));
+```
+
+Run it:
+```bash
+npx tsx scripts/register-sap-agent.ts
+```
+
+> If the script fails with `Attempt to debit an account but found no record of a prior credit` — the wallet has zero SOL. Fund it first (Step 2).
+
+### Step 4 — Publish Tools
+
+After registration, publish tool schemas so other agents can discover and invoke your capabilities:
+
+```ts
+// Publish a tool descriptor on-chain
+await sap.tools.publishByName('room-builder', {
+  description: 'Create and manage shared-state agent rooms',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string', description: 'Room name' },
+      maxParticipants: { type: 'number', default: 10 },
+      persistOnChain: { type: 'boolean', default: false },
+    },
+    required: ['name'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      roomId: { type: 'string' },
+      joinUrl: { type: 'string' },
+    },
+  },
+  category: 'infrastructure',
+  version: '1.0.0',
+});
+
+// Optionally inscribe the full schema on-chain for transparent audit
+await sap.tools.inscribeToolSchema('room-builder', fullSchemaJson);
+```
+
+### Step 5 — Set Up x402 Monetization
+
+Implement a Next.js route handler for x402 payment handshake:
+
+```ts
+// app/api/x402/agent/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { createSapProvider } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+import { loadServerWallet } from '@/lib/wallet';
+
+const getSap = createSapProvider(loadServerWallet(), {
+  network: SynapseNetwork.Mainnet,
+  commitment: 'confirmed',
+});
+
+export async function POST(req: NextRequest) {
+  const sap = getSap();
+  const body = await req.json();
+
+  // 1. Verify x402 payment header
+  const paymentHeader = req.headers.get('x-402-payment');
+  if (!paymentHeader) {
+    return NextResponse.json(
+      { error: 'Payment required', invoice: await sap.escrow.createInvoice(body) },
+      { status: 402 },
+    );
+  }
+
+  // 2. Validate and settle payment
+  const receipt = await sap.escrow.settle(paymentHeader);
+
+  // 3. Execute the requested tool
+  const result = await executeToolRequest(body, sap);
+
+  return NextResponse.json({ result, receipt });
+}
+```
+
+### Step 6 — Memory Sessions
+
+Use SAP sessions to persist conversation state on-chain:
+
+```ts
+// Start a memory session
+const session = await sap.session.start('conversation-001');
+
+// Write entries during the conversation
+await sap.session.write(session, 'User requested SOL→USDC swap at market price');
+await sap.session.write(session, 'Executed Jupiter swap: 1 SOL → 187.42 USDC');
+
+// Read back latest entries
+const entries = await sap.session.readLatest(session);
+
+// Seal the session (immutable after this)
+await sap.session.seal(session);
+```
+
+### Step 7 — Discover Other Agents
+
+Query the SAP on-chain registry to find other agents:
+
+```ts
+// Find all agents with a specific capability
+const swapAgents = await sap.discovery.findByCapability('jupiter:swap');
+console.log(`Found ${swapAgents.length} swap agents`);
+
+// Find agents by protocol
+const sapAgents = await sap.discovery.findByProtocol('sap');
+
+// Get a specific agent by wallet
+const agent = await sap.discovery.findByWallet('AgentWalletPubkeyHere');
+
+// Browse all registered agents
+const all = await sap.discovery.findAll();
+for (const a of all) {
+  console.log(a.name, a.capabilities, a.pricing);
+}
+```
+
+### Step 8 — Feedback & Attestation
+
+Build on-chain reputation through trustless reviews:
+
+```ts
+// Give feedback to another agent
+await sap.feedback.give({
+  targetAgent: 'TargetAgentPDA',
+  rating: 5,
+  comment: 'Fast and reliable swap execution',
+});
+
+// Create a web-of-trust attestation
+await sap.attestation.create({
+  targetAgent: 'TargetAgentPDA',
+  attestationType: 'capability-verified',
+  evidence: 'Verified jupiter:swap capability via test invocation',
+});
+```
+
+### Environment Setup Checklist
+
+```env
+# .env.local (development)
+SAP_AGENT_CLUSTER=devnet
+SAP_AGENT_WALLET=<PUBKEY>
+OOBE_API_KEY=<YOUR_API_KEY>
+
+# .env.production
+SAP_AGENT_CLUSTER=mainnet
+SAP_AGENT_WALLET=<PUBKEY>
+OOBE_API_KEY=<YOUR_API_KEY>
+```
+
+### File Structure Convention
+
+```
+project/
+├── secrets/                      # ⛔ .gitignore'd
+│   ├── agent-wallet.json         # Keypair JSON
+│   └── sap-agent.json            # Registration metadata (PDA, capabilities)
+├── scripts/
+│   └── register-sap-agent.ts     # Registration script
+├── src/
+│   └── lib/
+│       └── sap/
+│           └── network.ts        # Discovery + subnetwork helpers
+├── .env.local                    # Dev env vars
+├── .env.production               # Prod env vars
+└── .gitignore                    # Must include: secrets/*.json
+```
+
+### npm Script Shortcuts
+
+Add these to your `package.json` for convenience:
+
+```json
+{
+  "scripts": {
+    "sap:register": "tsx scripts/register-sap-agent.ts",
+    "sap:publish-tools": "tsx scripts/publish-sap-tools.ts",
+    "sap:discover": "tsx scripts/discover-agents.ts"
+  }
+}
+```
+
+### Troubleshooting
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `Attempt to debit an account but found no record of a prior credit` | Wallet has 0 SOL | Fund the wallet (Step 2) |
+| `SapDependencyError: Missing peer dependency` | Peer dep not installed | `npm i @oobe-protocol-labs/synapse-sap-sdk @coral-xyz/anchor @solana/web3.js` |
+| `ws error: 400` from OOBE node | Anchor tries WS without `api_key` | Pass explicit `wsEndpoint` with `?api_key=` or ignore (non-blocking) |
+| `Agent already registered` | PDA already exists for this wallet | Script detects it and exits — use a new wallet or call `sap.agent.update()` |
+| IDL not found in dist | SAP SDK not built | See SAP SDK build commands below |
+
+### SAP SDK Local Build (if installing from source)
+
+If `@oobe-protocol-labs/synapse-sap-sdk` was linked locally (not from npm), you may need to compile it:
+
+```bash
+# From your project root
+npx tsc -p node_modules/@oobe-protocol-labs/synapse-sap-sdk/tsconfig.esm.json
+npx tsc -p node_modules/@oobe-protocol-labs/synapse-sap-sdk/tsconfig.cjs.json
+
+# Copy the IDL into dist
+cp node_modules/@oobe-protocol-labs/synapse-sap-sdk/src/idl/synapse_agent_sap.json \
+   node_modules/@oobe-protocol-labs/synapse-sap-sdk/dist/esm/idl/
+cp node_modules/@oobe-protocol-labs/synapse-sap-sdk/src/idl/synapse_agent_sap.json \
+   node_modules/@oobe-protocol-labs/synapse-sap-sdk/dist/cjs/idl/
+```
+
+---
+
+## 27. DApp Wallet Integration (Phantom / Solflare / WalletConnect)
+
+This section explains how to build a **DApp where agents authenticate with browser wallets** (Phantom, Solflare, Backpack, WalletConnect, etc.) and access SAP protocol data based on their on-chain identity.
+
+The `SapWallet` interface is **already compatible** with `@solana/wallet-adapter-react` — the adapter's `wallet.adapter` exposes `publicKey`, `signTransaction`, and `signAllTransactions`, which is exactly what `SynapseAnchorSap.create()` expects.
+
+### Prerequisites
+
+```bash
+npm i @solana/wallet-adapter-react \
+      @solana/wallet-adapter-react-ui \
+      @solana/wallet-adapter-wallets \
+      @solana/wallet-adapter-base \
+      @solana/web3.js \
+      @coral-xyz/anchor \
+      @oobe-protocol-labs/synapse-sap-sdk \
+      @oobe-protocol-labs/synapse-client-sdk
+```
+
+### Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Browser DApp                                                │
+│                                                              │
+│  ┌─────────────────┐     ┌───────────────────────────────┐  │
+│  │ WalletProvider   │     │ SapProvider                   │  │
+│  │ (Phantom/Solflare│────▶│ createSapContextBlueprint()   │  │
+│  │  /WalletConnect) │     │   ↓                           │  │
+│  └─────────────────┘     │ SynapseAnchorSap.create()     │  │
+│                           │   ↓                           │  │
+│  useWallet() ────────────▶│ wallet.adapter → SapWallet    │  │
+│                           │   ↓                           │  │
+│                           │ sap.agent / sap.discovery /   │  │
+│                           │ sap.session / sap.escrow      │  │
+│                           └───────────────────────────────┘  │
+│                                      │                       │
+│                                      ▼                       │
+│                           ┌──────────────────────┐          │
+│                           │ SAP on-chain program  │          │
+│                           │ (Solana mainnet)      │          │
+│                           └──────────────────────┘          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Step 1 — Wallet Adapter Layout
+
+```tsx
+// app/providers/wallet-provider.tsx
+'use client';
+
+import { useMemo, type ReactNode } from 'react';
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+  // BackpackWalletAdapter,    // optional
+  // WalletConnectWalletAdapter // optional — needs projectId
+} from '@solana/wallet-adapter-wallets';
+
+import '@solana/wallet-adapter-react-ui/styles.css';
+
+const RPC_ENDPOINT = `https://us-1-mainnet.oobeprotocol.ai?api_key=${process.env.NEXT_PUBLIC_OOBE_API_KEY}`;
+
+export function SolanaWalletProvider({ children }: { children: ReactNode }) {
+  const wallets = useMemo(() => [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter(),
+  ], []);
+
+  return (
+    <ConnectionProvider endpoint={RPC_ENDPOINT}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          {children}
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+}
+```
+
+### Step 2 — SAP Provider (wired to Wallet Adapter)
+
+```tsx
+// app/providers/sap-provider.tsx
+'use client';
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import {
+  SynapseAnchorSap,
+  createSapContextBlueprint,
+  type SapContextValue,
+  type SapWallet,
+} from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+
+// ── Blueprint (created once, outside the component) ─────────
+const blueprint = createSapContextBlueprint({
+  // Uses Synapse endpoint resolution by default.
+  // Override with rpcEndpoint if you want to match the wallet-adapter Connection:
+  // rpcEndpoint: process.env.NEXT_PUBLIC_OOBE_RPC,
+});
+
+const SapContext = createContext<SapContextValue<SynapseAnchorSap>>(blueprint.defaultValue);
+
+export function SapProvider({ children }: { children: ReactNode }) {
+  const { wallet, connected, publicKey, signTransaction, signAllTransactions } = useWallet();
+  const { connection } = useConnection();
+
+  const [sap, setSap] = useState<SynapseAnchorSap | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  // ── Auto-connect when wallet connects ───────────────────
+  useEffect(() => {
+    if (!connected || !publicKey || !signTransaction || !signAllTransactions) {
+      setSap(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // wallet-adapter's useWallet() is already SapWallet-compatible
+      const sapWallet: SapWallet = {
+        publicKey,
+        signTransaction,
+        signAllTransactions,
+      };
+
+      const instance = SynapseAnchorSap.create({
+        wallet: sapWallet,
+        rpcEndpoint: connection.rpcEndpoint,  // reuse same RPC
+        commitment: 'confirmed',
+      });
+
+      setSap(instance);
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setLoading(false);
+    }
+  }, [connected, publicKey, signTransaction, signAllTransactions, connection.rpcEndpoint]);
+
+  // ── Manual connect / disconnect ─────────────────────────
+  const connect = useCallback(async (w: SapWallet) => {
+    setLoading(true);
+    setError(null);
+    try {
+      setSap(SynapseAnchorSap.create({
+        wallet: w,
+        rpcEndpoint: connection.rpcEndpoint,
+        commitment: 'confirmed',
+      }));
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setLoading(false);
+    }
+  }, [connection.rpcEndpoint]);
+
+  const disconnect = useCallback(() => {
+    setSap(null);
+    setError(null);
+  }, []);
+
+  const value = useMemo<SapContextValue<SynapseAnchorSap>>(() => ({
+    client: sap,
+    loading,
+    error,
+    connect,
+    disconnect,
+  }), [sap, loading, error, connect, disconnect]);
+
+  return <SapContext.Provider value={value}>{children}</SapContext.Provider>;
+}
+
+export const useSap = () => useContext(SapContext);
+```
+
+### Step 3 — Root Layout
+
+```tsx
+// app/layout.tsx
+import { SolanaWalletProvider } from './providers/wallet-provider';
+import { SapProvider } from './providers/sap-provider';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <SolanaWalletProvider>
+          <SapProvider>
+            {children}
+          </SapProvider>
+        </SolanaWalletProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Step 4 — Agent Dashboard (read on-chain position)
+
+Once the wallet is connected, `useSap()` gives you full access to the agent's on-chain data:
+
+```tsx
+// components/agent-dashboard.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useSap } from '@/app/providers/sap-provider';
+
+export function AgentDashboard() {
+  const { connected } = useWallet();
+  const { client: sap, loading, error } = useSap();
+  const [agentData, setAgentData] = useState<any>(null);
+
+  useEffect(() => {
+    if (!sap) return;
+
+    // Fetch the connected wallet's agent profile from SAP
+    sap.agent.fetch()
+      .then(setAgentData)
+      .catch(() => setAgentData(null));  // not registered yet
+  }, [sap]);
+
+  return (
+    <div>
+      <WalletMultiButton />
+
+      {!connected && <p>Connect your wallet (Phantom, Solflare, etc.) to view your agent profile.</p>}
+      {loading && <p>Connecting to SAP...</p>}
+      {error && <p>Error: {error.message}</p>}
+
+      {sap && !agentData && (
+        <div>
+          <p>No agent registered for this wallet.</p>
+          <button onClick={() => registerAgent(sap)}>Register as Agent</button>
+        </div>
+      )}
+
+      {agentData && (
+        <div>
+          <h2>Agent Profile</h2>
+          <p><strong>PDA:</strong> {agentData.address}</p>
+          <p><strong>Name:</strong> {agentData.name}</p>
+          <p><strong>Status:</strong> {agentData.isActive ? '🟢 Active' : '🔴 Inactive'}</p>
+
+          <h3>Capabilities</h3>
+          <ul>
+            {agentData.capabilities?.map((cap: any) => (
+              <li key={cap.id}>{cap.id} — {cap.protocol} v{cap.version}</li>
+            ))}
+          </ul>
+
+          <h3>Reputation</h3>
+          <p>Score: {agentData.reputation?.score ?? 'N/A'}</p>
+          <p>Total calls: {agentData.reputation?.totalCalls ?? 0}</p>
+          <p>Avg latency: {agentData.reputation?.avgLatency ?? 'N/A'}ms</p>
+
+          <h3>Pricing</h3>
+          {agentData.pricing?.map((tier: any) => (
+            <p key={tier.tierId}>
+              {tier.tierId}: {tier.pricePerCall} lamports/call — {tier.settlementMode}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+async function registerAgent(sap: any) {
+  await sap.builder
+    .agent('My DApp Agent')
+    .description('Agent created via DApp wallet sign-in')
+    .addCapability('synapse:actions', { protocol: 'synapse', version: '2.0' })
+    .addPricingTier({
+      tierId: 'free',
+      pricePerCall: 0,
+      rateLimit: 30,
+      tokenType: 'sol',
+      settlementMode: 'x402',
+    })
+    .register();
+
+  window.location.reload();
+}
+```
+
+### Step 5 — Discover Other Agents in the Network
+
+```tsx
+// components/network-explorer.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSap } from '@/app/providers/sap-provider';
+
+export function NetworkExplorer() {
+  const { client: sap } = useSap();
+  const [agents, setAgents] = useState<any[]>([]);
+  const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    if (!sap) return;
+
+    const load = async () => {
+      const result = filter
+        ? await sap.discovery.findByCapability(filter)
+        : await sap.discovery.findAll();
+      setAgents(result);
+    };
+    load();
+  }, [sap, filter]);
+
+  if (!sap) return <p>Connect wallet to browse the SAP network.</p>;
+
+  return (
+    <div>
+      <h2>SAP Network Explorer</h2>
+      <input
+        placeholder="Filter by capability (e.g. jupiter:swap)"
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+      />
+
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Wallet</th>
+            <th>Capabilities</th>
+            <th>Score</th>
+            <th>Calls</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {agents.map((a) => (
+            <tr key={a.address}>
+              <td>{a.name}</td>
+              <td>{a.wallet?.slice(0, 8)}...</td>
+              <td>{a.capabilities?.map((c: any) => c.id).join(', ')}</td>
+              <td>{a.reputation?.score ?? '—'}</td>
+              <td>{a.reputation?.totalCalls ?? 0}</td>
+              <td>{a.isActive ? '🟢' : '🔴'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+```
+
+### Step 6 — Agent-to-Agent Interactions (Feedback, Attestation, Sessions)
+
+```tsx
+// Give on-chain feedback to another agent
+const { client: sap } = useSap();
+
+await sap.feedback.give({
+  targetAgent: 'OtherAgentPDA',
+  rating: 5,
+  comment: 'Reliable and fast',
+});
+
+// Create web-of-trust attestation
+await sap.attestation.create({
+  targetAgent: 'OtherAgentPDA',
+  attestationType: 'capability-verified',
+  evidence: 'Verified jupiter:swap via test trade',
+});
+
+// Start a shared memory session between agents
+const session = await sap.session.start('collab-session-42');
+await sap.session.write(session, 'Agent A proposed multi-hop swap route');
+const entries = await sap.session.readLatest(session);
+await sap.session.seal(session);  // immutable after seal
+```
+
+### Wallet Compatibility Matrix
+
+`SapWallet` requires three properties: `publicKey`, `signTransaction`, `signAllTransactions`. Here's how each adapter maps:
+
+| Wallet | Adapter Package | SapWallet Compatible | Notes |
+|--------|----------------|---------------------|-------|
+| Phantom | `@solana/wallet-adapter-wallets` | ✅ Direct | `useWallet()` properties map 1:1 |
+| Solflare | `@solana/wallet-adapter-wallets` | ✅ Direct | Same adapter interface |
+| Backpack | `@solana/wallet-adapter-wallets` | ✅ Direct | Same adapter interface |
+| WalletConnect | `@solana/wallet-adapter-wallets` | ✅ Direct | Needs WC `projectId` in adapter config |
+| Ledger | `@solana/wallet-adapter-wallets` | ✅ Direct | Hardware signing — user confirms on device |
+| Keypair (server) | `@solana/web3.js` | ✅ Via adapter | Wrap with `{ publicKey, signTransaction, signAllTransactions }` |
+| Mobile (MWA) | `@solana-mobile/wallet-adapter-mobile` | ✅ Direct | Same interface, mobile webview |
+
+### How `useWallet()` Maps to `SapWallet`
+
+```ts
+import { useWallet } from '@solana/wallet-adapter-react';
+import type { SapWallet } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+
+function useWalletAsSapWallet(): SapWallet | null {
+  const { publicKey, signTransaction, signAllTransactions, connected } = useWallet();
+
+  if (!connected || !publicKey || !signTransaction || !signAllTransactions) {
+    return null;
+  }
+
+  // useWallet() is directly SapWallet-compatible — no wrapping needed
+  return { publicKey, signTransaction, signAllTransactions };
+}
+```
+
+### WalletConnect Setup
+
+For WalletConnect support (QR code linking from mobile wallets):
+
+```ts
+import { WalletConnectWalletAdapter } from '@walletconnect/solana-adapter';
+
+const wallets = [
+  new PhantomWalletAdapter(),
+  new SolflareWalletAdapter(),
+  new WalletConnectWalletAdapter({
+    network: 'mainnet-beta',
+    options: {
+      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+      metadata: {
+        name: 'My SAP DApp',
+        description: 'Agent marketplace powered by SAP',
+        url: 'https://myapp.com',
+        icons: ['https://myapp.com/icon.png'],
+      },
+    },
+  }),
+];
+```
+
+### Troubleshooting — DApp Integration
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `signTransaction is null` | Wallet connected but adapter doesn't support it | Check `wallet.adapter.supportedTransactionVersions` — some view-only wallets can't sign |
+| SAP operations fail silently | User rejected the signing prompt | Wrap calls in try/catch — Phantom/Solflare throw `WalletSignTransactionError` |
+| "Agent not registered" after connecting | The wallet has no on-chain agent PDA | Show a registration UI (Step 4 example) |
+| `publicKey` changes after disconnect/reconnect | Wallet adapter resets state | The `useEffect` in `SapProvider` handles this automatically |
+| Transaction too large | Agent has many capabilities | Split into multiple transactions or reduce capability count |
+
+---
+
 ## Quick Reference — Import Paths
 
 | Import Path | What |
@@ -1384,3 +2248,6 @@ const allTools = kit.getTools();
 | US | Mainnet gRPC | HTTPS | `https://us-1-mainnet.oobeprotocol.ai/grpc?api_key=KEY` |
 | EU | Mainnet RPC | HTTPS | `https://staging.oobeprotocol.ai?api_key=KEY` |
 | EU | Mainnet WS | WSS | `wss://staging.oobeprotocol.ai/ws?api_key=KEY` |
+
+
+
