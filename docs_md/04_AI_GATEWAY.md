@@ -295,7 +295,7 @@ const agent = await registry.resolve(createAgentId('my-agent'));
 | `MemoryAdapter` | In-process `Map` | Dev / test |
 | `RedisPersistence` | Redis / Valkey | Production sessions |
 | `PostgresPersistence` | PostgreSQL | Audit / analytics |
-| `OnChainPersistenceAdapter` | Solana PDA | Decentralized identity |
+| `SynapseAnchorSap` | Solana (SAP SDK) | On-chain agent identity via `@oobe-protocol-labs/synapse-sap-sdk` |
 
 ---
 

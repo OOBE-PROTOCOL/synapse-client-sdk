@@ -263,8 +263,7 @@ SynapseError
 │
 ├── MonetizeError                   Tool monetization bridge
 ├── ProtocolApiError                External API call failure
-├── SAPProgramError                 SAP instruction building
-├── SAPDiscoveryError               On-chain agent discovery
+├── SapDependencyError               SAP peer dependency missing
 ├── ActionServerError               Actions/Blinks handler
 │
 ├── IntentError                     Cross-protocol intents

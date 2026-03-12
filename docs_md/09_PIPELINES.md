@@ -111,34 +111,28 @@ import {
   createAgentId,
   createAgentIdentity,
 } from '@oobe-protocol-labs/synapse-client-sdk/ai';
-import {
-  SAPInstructionBuilder,
-  deriveAgentPDA,
-  SAP_DEFAULT_PROGRAM_ID,
-} from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+import { SynapseAnchorSap } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
 import { RedisPersistence } from '@oobe-protocol-labs/synapse-client-sdk/ai/persistence';
 import Redis from 'ioredis';
 
 const client = createSynapseClient({ rpcUrl: process.env.RPC_URL! });
 
-// 1. Register on-chain (one-time)
-const builder = new SAPInstructionBuilder({ programId: SAP_DEFAULT_PROGRAM_ID });
-const ix = builder.register({
-  walletPubkey: process.env.WALLET_PUBKEY!,
-  name:         'DeFi Oracle Agent',
-  description:  'Jupiter + Raydium price and swap tools',
-  capabilities: [
-    { id: 'jupiter:getQuote' },
-    { id: 'jupiter:swap' },
-    { id: 'raydium:getPoolInfo' },
-  ],
-  pricing: [{
-    tierId: 'standard', pricePerCall: 1000n,
-    rateLimit: 10, maxCallsPerSession: 500, tokenType: 'USDC',
-  }],
-  x402Endpoint: 'https://myagent.xyz/.well-known/x402',
-});
-// → Submit `ix` in a Solana transaction (one-time setup)
+// 1. Register on-chain via SAP bridge (one-time)
+const sap = SynapseAnchorSap.fromSynapseClient(client, serverWallet);
+
+await sap.builder
+  .agent('DeFi Oracle Agent')
+  .description('Jupiter + Raydium price and swap tools')
+  .addCapability('jupiter:getQuote', { protocol: 'jupiter', version: '6.0' })
+  .addCapability('jupiter:swap', { protocol: 'jupiter', version: '6.0' })
+  .addCapability('raydium:getPoolInfo', { protocol: 'raydium', version: '4.0' })
+  .addPricingTier({
+    tierId: 'standard', pricePerCall: 1000,
+    rateLimit: 10, tokenType: 'sol', settlementMode: 'x402',
+  })
+  .x402Endpoint('https://myagent.xyz/.well-known/x402')
+  .register();
+// → Agent registered on-chain in a single transaction
 
 // 2. Persistence
 const redis = new Redis(process.env.REDIS_URL!);
@@ -305,32 +299,32 @@ Discover the best agent on-chain and connect automatically.
 
 ```ts
 import { createSynapseClient } from '@oobe-protocol-labs/synapse-client-sdk';
-import { SAPDiscovery, pdaToIdentity, pricingToTier, SAP_DEFAULT_PROGRAM_ID } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+import { SynapseAnchorSap } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
 import { createAgentGateway } from '@oobe-protocol-labs/synapse-client-sdk/ai';
 
-const client    = createSynapseClient({ rpcUrl: process.env.RPC_URL! });
-const discovery = new SAPDiscovery(client, { programId: SAP_DEFAULT_PROGRAM_ID });
+const client = createSynapseClient({ rpcUrl: process.env.RPC_URL! });
+const sap    = SynapseAnchorSap.fromSynapseClient(client, serverWallet);
 
-// Find the best Jupiter swap agent
-const agents = await discovery.find({
-  capability:    'jupiter:swap',
-  minReputation: 500,
-  sortBy:        'reputation',
-  limit:         5,
-});
+// Find the best Jupiter swap agent via SAP discovery
+const agents = await sap.discovery.findByCapability('jupiter:swap');
 
-if (agents.agents.length === 0) {
+if (!agents || agents.length === 0) {
   console.log('No agents found');
   process.exit(1);
 }
 
-const best = agents.agents[0];
-console.log(`Connecting to: ${best.name} (reputation: ${best.reputation.score})`);
+const best = agents[0];
+console.log(`Connecting to: ${best.name} (reputation: ${best.reputationScore})`);
 
-// Convert on-chain data to gateway-compatible types
+// The discovered agent's data can be used with the commerce gateway
 const gateway = createAgentGateway(client, {
-  identity:     pdaToIdentity(best),
-  defaultTiers: best.pricing.map(pricingToTier),
+  identity: {
+    id: best.wallet.toBase58(),
+    name: best.name,
+    walletPubkey: best.wallet.toBase58(),
+    createdAt: Date.now(),
+  },
+  defaultTiers: [],
 });
 
 // Open a session and start using tools
@@ -515,7 +509,7 @@ import {
   createAgentId,
   createAgentIdentity,
 } from '@oobe-protocol-labs/synapse-client-sdk/ai';
-import { SAPInstructionBuilder, SAPDiscovery, SAP_DEFAULT_PROGRAM_ID } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
+import { SynapseAnchorSap } from '@oobe-protocol-labs/synapse-client-sdk/ai/sap';
 import { IntentParser, IntentPlanner, IntentExecutor } from '@oobe-protocol-labs/synapse-client-sdk/ai/intents';
 import { ActionServer, BlinkGenerator } from '@oobe-protocol-labs/synapse-client-sdk/ai/actions';
 import { RedisPersistence, PostgresPersistence } from '@oobe-protocol-labs/synapse-client-sdk/ai/persistence';
@@ -581,7 +575,7 @@ actionServer.defineAction('swap', {
 });
 
 // ─── Discovery ─────────────────────────────────────────────
-const discovery = new SAPDiscovery(client, { programId: SAP_DEFAULT_PROGRAM_ID });
+const sap = SynapseAnchorSap.fromSynapseClient(client, serverWallet);
 
 // ─── WebSocket monitoring ──────────────────────────────────
 ws.accountSubscribe(process.env.WALLET!, { commitment: 'confirmed' }, (account) => {
@@ -676,9 +670,9 @@ SynapseClient ──→ createRpcTools()      ──→ StructuredTool[]
       │         ├── PricingTier[]                ├── PaymentReceipt
       │         └── PersistenceStore             └── SessionRecord
       │
-      ├──→ SAPDiscovery                  ──→ AgentPDAAccount
+      ├──→ SynapseAnchorSap.discovery     ──→ DiscoveryRegistry
       │         │                                │
-      │         └── pdaToIdentity()      ──→ AgentIdentity (→ Gateway)
+      │         └── .find()              ──→ AgentIdentity (→ Gateway)
       │
       ├──→ ActionServer                  ──→ ActionDefinition
       │                                        │

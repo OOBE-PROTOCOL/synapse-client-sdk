@@ -1,6 +1,6 @@
 {
   "name": "@oobe-protocol-labs/synapse-client-sdk",
-  "version": "2.0.2",
+  "version": "2.0.5",
   "description": "Synapse Client SDK -- Typed Solana RPC gateway with @solana/kit native types, 53 JSON-RPC methods, DAS, WebSocket, gRPC/Geyser parser, 110+ plugin-based AI tools (Token, NFT, DeFi, Misc, Blinks), MCP server & client, and x402 payments | Powered by oobeprotocol.ai (OOBE)",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -320,7 +320,10 @@
     "typescript": ">=5.0.0",
     "zod": ">=3.23.0 || >=4.0.0",
     "ioredis": ">=5.0.0",
-    "pg": ">=8.0.0"
+    "pg": ">=8.0.0",
+    "@oobe-protocol-labs/synapse-sap-sdk": ">=0.1.0",
+    "@coral-xyz/anchor": ">=0.30.0",
+    "@solana/web3.js": ">=1.90.0"
   },
   "peerDependenciesMeta": {
     "zod": {
@@ -333,6 +336,15 @@
       "optional": true
     },
     "pg": {
+      "optional": true
+    },
+    "@oobe-protocol-labs/synapse-sap-sdk": {
+      "optional": true
+    },
+    "@coral-xyz/anchor": {
+      "optional": true
+    },
+    "@solana/web3.js": {
       "optional": true
     }
   },
