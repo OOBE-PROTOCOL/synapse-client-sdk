@@ -36,6 +36,7 @@ export {
   createJupiterOnchainTools,
   createRaydiumOnchainTools,
   createSolanaProgramsTools,
+  createKamiyoTools,
   createProtocolTools,
   // Schemas
   jupiterMethods,
@@ -50,6 +51,8 @@ export {
   raydiumOnchainMethodNames,
   solanaProgramsMethods,
   solanaProgramsMethodNames,
+  kamiyoMethods,
+  kamiyoMethodNames,
   // Shared infrastructure
   ProtocolHttpClient,
   ProtocolApiError,
@@ -60,6 +63,7 @@ export {
   RAYDIUM_API_URL,
   JUPITER_PROGRAM_IDS,
   RAYDIUM_PROGRAM_IDS,
+  KAMIYO_API_URL,
   // Types
   type ProtocolMethod,
   type ProtocolToolkit,
@@ -72,6 +76,7 @@ export {
   type JupiterOnchainToolsConfig,
   type RaydiumOnchainToolsConfig,
   type SolanaProgramsToolsConfig,
+  type KamiyoToolsConfig,
   type CreateProtocolToolsConfig,
   type AllProtocolToolkits,
 } from './protocols';

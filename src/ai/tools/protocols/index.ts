@@ -83,6 +83,15 @@ export {
   type SolanaProgramsToolsConfig,
 } from './solana-programs';
 
+// ── KAMIYO ────────────────────────────────────────────────────
+export {
+  createKamiyoTools,
+  kamiyoMethods,
+  kamiyoMethodNames,
+  KAMIYO_API_URL,
+  type KamiyoToolsConfig,
+} from './kamiyo';
+
 /* ═══════════════════════════════════════════════════════════════
  *  Super-factory — createProtocolTools()
  *
@@ -98,6 +107,7 @@ import { createMetaplexTools, type MetaplexToolsConfig } from './metaplex';
 import { createJupiterOnchainTools, type JupiterOnchainToolsConfig } from './jupiter-onchain';
 import { createRaydiumOnchainTools, type RaydiumOnchainToolsConfig } from './raydium-onchain';
 import { createSolanaProgramsTools, type SolanaProgramsToolsConfig } from './solana-programs';
+import { createKamiyoTools, type KamiyoToolsConfig } from './kamiyo';
 import type { ProtocolToolkit, ProtocolTool, CreateProtocolToolsOpts } from './shared';
 
 /**
@@ -118,6 +128,11 @@ export interface CreateProtocolToolsConfig {
   raydiumOnchain?: RaydiumOnchainToolsConfig | false;
   /** Solana native programs config — pass `false` to skip instruction-building tools entirely. */
   solanaPrograms?: SolanaProgramsToolsConfig & CreateProtocolToolsOpts | false;
+  /**
+   * KAMIYO partner integration config.
+   * Unlike public protocol integrations, this is opt-in only because it usually requires bearer auth.
+   */
+  kamiyo?: KamiyoToolsConfig & CreateProtocolToolsOpts | false;
 }
 
 /**
@@ -138,6 +153,8 @@ export interface AllProtocolToolkits {
   raydiumOnchain?: ProtocolToolkit;
   /** Solana native programs toolkit (undefined if disabled). */
   solanaPrograms?: ProtocolToolkit;
+  /** KAMIYO partner toolkit (undefined unless explicitly enabled). */
+  kamiyo?: ProtocolToolkit;
   /** Flat array of ALL tools across all enabled protocols — pass directly to an agent. */
   allTools: ProtocolTool[];
   /** Total number of tools. */
@@ -184,6 +201,7 @@ export function createProtocolTools(
   let jupiterOnchain: ProtocolToolkit | undefined;
   let raydiumOnchain: ProtocolToolkit | undefined;
   let solanaPrograms: ProtocolToolkit | undefined;
+  let kamiyo: ProtocolToolkit | undefined;
 
   // Jupiter
   if (config.jupiter !== false) {
@@ -227,6 +245,13 @@ export function createProtocolTools(
     protocolSummary.solanaPrograms = solanaPrograms.tools.length;
   }
 
+  // KAMIYO partner tools are opt-in only because the surface is usually authenticated.
+  if (config.kamiyo) {
+    kamiyo = createKamiyoTools(config.kamiyo);
+    allTools.push(...kamiyo.tools);
+    protocolSummary.kamiyo = kamiyo.tools.length;
+  }
+
   return {
     jupiter,
     raydium,
@@ -234,6 +259,7 @@ export function createProtocolTools(
     jupiterOnchain,
     raydiumOnchain,
     solanaPrograms,
+    kamiyo,
     allTools,
     totalToolCount: allTools.length,
     protocolSummary,

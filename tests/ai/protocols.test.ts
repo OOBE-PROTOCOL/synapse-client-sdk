@@ -41,6 +41,14 @@ import {
   createMetaplexTools,
 } from '../../src/ai/tools/protocols/metaplex';
 
+// ── KAMIYO ─────────────────────────────────────────────────────
+import {
+  kamiyoMethods,
+  kamiyoMethodNames,
+  createKamiyoTools,
+  KAMIYO_API_URL,
+} from '../../src/ai/tools/protocols/kamiyo';
+
 // ── Super-factory ──────────────────────────────────────────────
 import {
   createProtocolTools,
@@ -872,6 +880,130 @@ describe('Metaplex Tool Factory', () => {
 });
 
 /* ═══════════════════════════════════════════════════════════════
+ *  7b. KAMIYO Schema Registry
+ * ═══════════════════════════════════════════════════════════════ */
+
+describe('KAMIYO Schema Registry', () => {
+  it('registers exactly 4 methods', () => {
+    expect(kamiyoMethods).toHaveLength(4);
+  });
+
+  it('all methods have required fields', () => {
+    for (const method of kamiyoMethods) {
+      expect(method.name).toBeTruthy();
+      expect(method.input).toBeDefined();
+      expect(method.output).toBeDefined();
+      expect(method.description).toBeTruthy();
+      expect(method.protocol).toBe('kamiyo');
+      expect(['GET', 'POST']).toContain(method.httpMethod);
+      expect(method.path).toBeTruthy();
+    }
+  });
+
+  it('kamiyoMethodNames matches method names', () => {
+    expect(kamiyoMethodNames).toEqual(kamiyoMethods.map((method) => method.name));
+  });
+
+  it('includes the phase-1 OOBE integration methods', () => {
+    expect(kamiyoMethodNames).toEqual([
+      'x402CheckPricing',
+      'x402Fetch',
+      'createEscrow',
+      'checkEscrowStatus',
+    ]);
+  });
+
+  it('KAMIYO_API_URL is correct', () => {
+    expect(KAMIYO_API_URL).toBe('https://api.kamiyo.ai/api/partners/oobe');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+ *  7c. KAMIYO Tool Factory
+ * ═══════════════════════════════════════════════════════════════ */
+
+describe('KAMIYO Tool Factory', () => {
+  it('creates tools for all 4 methods', () => {
+    const fetchMock = mockFetch({});
+    const toolkit = createKamiyoTools({ fetch: fetchMock });
+    expect(toolkit.tools).toHaveLength(4);
+    expect(toolkit.protocol).toBe('kamiyo');
+  });
+
+  it('tool names use kamiyo_ prefix by default', () => {
+    const fetchMock = mockFetch({});
+    const toolkit = createKamiyoTools({ fetch: fetchMock });
+    for (const t of toolkit.tools) {
+      expect(t.name).toMatch(/^kamiyo_/);
+    }
+  });
+
+  it('includes bearer token as Authorization header', async () => {
+    const fetchMock = mockFetch({ success: true, free: true });
+    const toolkit = createKamiyoTools({ fetch: fetchMock, bearerToken: 'partner-secret' });
+
+    await toolkit.toolMap.x402CheckPricing.invoke({
+      url: 'https://api.kamiyo.ai/api/paid/market',
+    });
+
+    const headers = fetchMock.mock.calls[0][1].headers;
+    expect(headers.Authorization).toBe('Bearer partner-secret');
+  });
+
+  it('GET tool sends query params to the pricing endpoint', async () => {
+    const fetchMock = mockFetch({ success: true, free: true });
+    const toolkit = createKamiyoTools({ fetch: fetchMock });
+
+    const result = await toolkit.toolMap.x402CheckPricing.invoke({
+      url: 'https://api.kamiyo.ai/api/paid/market',
+    });
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl).toContain('/x402/pricing');
+    expect(calledUrl).toContain('url=');
+    expect(JSON.parse(result as string)).toEqual({ success: true, free: true });
+  });
+
+  it('POST tool sends JSON body to the fetch endpoint', async () => {
+    const fetchMock = mockFetch({ success: true, paid: false, data: { ok: true } });
+    const toolkit = createKamiyoTools({ fetch: fetchMock });
+
+    await toolkit.toolMap.x402Fetch.invoke({
+      url: 'https://api.kamiyo.ai/api/paid/market',
+      method: 'GET',
+    });
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    const opts = fetchMock.mock.calls[0][1];
+    expect(calledUrl).toContain('/x402/fetch');
+    expect(opts.method).toBe('POST');
+    expect(JSON.parse(opts.body)).toEqual({
+      url: 'https://api.kamiyo.ai/api/paid/market',
+      method: 'GET',
+    });
+  });
+
+  it('returns JSON error on API failure (never throws)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: () => Promise.resolve('Unauthorized'),
+    });
+    const toolkit = createKamiyoTools({ fetch: fetchMock });
+
+    const result = await toolkit.toolMap.createEscrow.invoke({
+      api: 'Abc123',
+      amount: 0.01,
+    });
+
+    const parsed = JSON.parse(result as string);
+    expect(parsed.error).toBe(true);
+    expect(parsed.protocol).toBe('kamiyo');
+    expect(parsed.message).toContain('401');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
  *  8. Super-factory — createProtocolTools()
  * ═══════════════════════════════════════════════════════════════ */
 
@@ -920,6 +1052,31 @@ describe('createProtocolTools (super-factory)', () => {
     expect(result.allTools).toHaveLength(22);
   });
 
+  it('adds KAMIYO tools only when explicitly configured', () => {
+    const client = mockSynapseClient();
+    const fetchMock = mockFetch({ success: true, free: true });
+
+    const result = createProtocolTools(client, {
+      jupiter: false,
+      raydium: false,
+      metaplex: false,
+      jupiterOnchain: false,
+      raydiumOnchain: false,
+      solanaPrograms: false,
+      kamiyo: { fetch: fetchMock, bearerToken: 'partner-secret' },
+    });
+
+    expect(result.kamiyo).toBeDefined();
+    expect(result.totalToolCount).toBe(4);
+    expect(result.protocolSummary.kamiyo).toBe(4);
+    expect(result.allTools.map((tool) => tool.name).sort()).toEqual([
+      'kamiyo_checkEscrowStatus',
+      'kamiyo_createEscrow',
+      'kamiyo_x402CheckPricing',
+      'kamiyo_x402Fetch',
+    ]);
+  });
+
   it('allTools is a flat array of all tools', () => {
     const client = mockSynapseClient();
     const fetchMock = mockFetch({});
@@ -948,29 +1105,30 @@ describe('createProtocolTools (super-factory)', () => {
 
 describe('Cross-protocol consistency', () => {
   it('no method name collisions across protocols', () => {
-    const all = [...jupiterMethodNames, ...raydiumMethodNames, ...metaplexMethodNames];
+    const all = [...jupiterMethodNames, ...raydiumMethodNames, ...metaplexMethodNames, ...kamiyoMethodNames];
     // There could be overlaps (e.g. 'getTokenList') but prefixed tool names must be unique
     const prefixed = [
       ...jupiterMethodNames.map((n) => `jupiter_${n}`),
       ...raydiumMethodNames.map((n) => `raydium_${n}`),
       ...metaplexMethodNames.map((n) => `metaplex_${n}`),
+      ...kamiyoMethodNames.map((n) => `kamiyo_${n}`),
     ];
     expect(new Set(prefixed).size).toBe(prefixed.length);
   });
 
-  it('total method count is 50 (22 + 16 + 12)', () => {
-    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length).toBe(50);
+  it('total method count is 54 (22 + 16 + 12 + 4)', () => {
+    expect(jupiterMethods.length + raydiumMethods.length + metaplexMethods.length + kamiyoMethods.length).toBe(54);
   });
 
   it('every method across all protocols has a description', () => {
-    const all = [...jupiterMethods, ...raydiumMethods, ...metaplexMethods];
+    const all = [...jupiterMethods, ...raydiumMethods, ...metaplexMethods, ...kamiyoMethods];
     for (const m of all) {
       expect(m.description, `${m.protocol}:${m.name} missing description`).toBeTruthy();
     }
   });
 
   it('every method across all protocols has both input and output schemas', () => {
-    const all = [...jupiterMethods, ...raydiumMethods, ...metaplexMethods];
+    const all = [...jupiterMethods, ...raydiumMethods, ...metaplexMethods, ...kamiyoMethods];
     for (const m of all) {
       expect(m.input, `${m.protocol}:${m.name} missing input`).toBeDefined();
       expect(m.output, `${m.protocol}:${m.name} missing output`).toBeDefined();

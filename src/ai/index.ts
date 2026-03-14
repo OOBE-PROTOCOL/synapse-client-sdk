@@ -27,12 +27,13 @@ export {
   type CreateSolanaToolsOpts,
 } from './tools';
 
-// ── Protocol Tools (Jupiter, Raydium, Metaplex, On-Chain) ─────
+// ── Protocol Tools (Jupiter, Raydium, Metaplex, KAMIYO, On-Chain) ─────
 export {
   // Factories
   createJupiterTools,
   createRaydiumTools,
   createMetaplexTools,
+  createKamiyoTools,
   createJupiterOnchainTools,
   createRaydiumOnchainTools,
   createSolanaProgramsTools,
@@ -44,6 +45,8 @@ export {
   raydiumMethodNames,
   metaplexMethods,
   metaplexMethodNames,
+  kamiyoMethods,
+  kamiyoMethodNames,
   jupiterOnchainMethods,
   jupiterOnchainMethodNames,
   raydiumOnchainMethods,
@@ -58,6 +61,7 @@ export {
   // Constants
   JUPITER_API_URL,
   RAYDIUM_API_URL,
+  KAMIYO_API_URL,
   JUPITER_PROGRAM_IDS,
   RAYDIUM_PROGRAM_IDS,
   // Types
@@ -69,6 +73,7 @@ export {
   type JupiterToolsConfig,
   type RaydiumToolsConfig,
   type MetaplexToolsConfig,
+  type KamiyoToolsConfig,
   type JupiterOnchainToolsConfig,
   type RaydiumOnchainToolsConfig,
   type SolanaProgramsToolsConfig,
