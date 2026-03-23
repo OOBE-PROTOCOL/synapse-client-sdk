@@ -92,6 +92,15 @@ export {
   type KamiyoToolsConfig,
 } from './kamiyo';
 
+// ── Invoica ───────────────────────────────────────────────────
+export {
+  createInvoicaTools,
+  invoicaMethods,
+  invoicaMethodNames,
+  INVOICA_API_URL,
+  type InvoicaToolsConfig,
+} from './invoica';
+
 /* ═══════════════════════════════════════════════════════════════
  *  Super-factory — createProtocolTools()
  *
@@ -108,6 +117,7 @@ import { createJupiterOnchainTools, type JupiterOnchainToolsConfig } from './jup
 import { createRaydiumOnchainTools, type RaydiumOnchainToolsConfig } from './raydium-onchain';
 import { createSolanaProgramsTools, type SolanaProgramsToolsConfig } from './solana-programs';
 import { createKamiyoTools, type KamiyoToolsConfig } from './kamiyo';
+import { createInvoicaTools, type InvoicaToolsConfig } from './invoica';
 import type { ProtocolToolkit, ProtocolTool, CreateProtocolToolsOpts } from './shared';
 
 /**
@@ -133,6 +143,11 @@ export interface CreateProtocolToolsConfig {
    * Unlike public protocol integrations, this is opt-in only because it usually requires bearer auth.
    */
   kamiyo?: KamiyoToolsConfig & CreateProtocolToolsOpts | false;
+  /**
+   * Invoica x402 invoice middleware config.
+   * Opt-in only — requires an API key from https://invoica.ai/dashboard/settings.
+   */
+  invoica?: InvoicaToolsConfig & CreateProtocolToolsOpts | false;
 }
 
 /**
@@ -155,6 +170,8 @@ export interface AllProtocolToolkits {
   solanaPrograms?: ProtocolToolkit;
   /** KAMIYO partner toolkit (undefined unless explicitly enabled). */
   kamiyo?: ProtocolToolkit;
+  /** Invoica x402 invoice middleware toolkit (undefined unless explicitly enabled). */
+  invoica?: ProtocolToolkit;
   /** Flat array of ALL tools across all enabled protocols — pass directly to an agent. */
   allTools: ProtocolTool[];
   /** Total number of tools. */
@@ -202,6 +219,7 @@ export function createProtocolTools(
   let raydiumOnchain: ProtocolToolkit | undefined;
   let solanaPrograms: ProtocolToolkit | undefined;
   let kamiyo: ProtocolToolkit | undefined;
+  let invoica: ProtocolToolkit | undefined;
 
   // Jupiter
   if (config.jupiter !== false) {
@@ -252,6 +270,13 @@ export function createProtocolTools(
     protocolSummary.kamiyo = kamiyo.tools.length;
   }
 
+  // Invoica x402 invoice middleware — opt-in only (requires API key from invoica.ai).
+  if (config.invoica) {
+    invoica = createInvoicaTools(config.invoica);
+    allTools.push(...invoica.tools);
+    protocolSummary.invoica = invoica.tools.length;
+  }
+
   return {
     jupiter,
     raydium,
@@ -260,6 +285,7 @@ export function createProtocolTools(
     raydiumOnchain,
     solanaPrograms,
     kamiyo,
+    invoica,
     allTools,
     totalToolCount: allTools.length,
     protocolSummary,
