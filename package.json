@@ -300,7 +300,7 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@langchain/core": "^0.3.78",
+    "@langchain/core": "^1.1.41",
     "@types/node": "^24.3.0",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
