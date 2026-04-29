@@ -91,7 +91,7 @@ registerRpcMethod('getMultipleAccounts',
     encoding: zEncoding, dataSlice: zDataSlice, commitment: zCommitment, minContextSlot: zMinCtxSlot,
   }),
   zCtx(z.array(zAccountInfo.nullable())),
-  'Returns the account information for a list of Pubkeys (max 100).',
+  'Returns the account information for a list of Pubkeys (max 100). Accounts that do not exist will return null. To handle more than 100 accounts, batch multiple calls to this method if not supported 1000 rate limit.',
 );
 
 registerRpcMethod('getProgramAccounts',
@@ -105,13 +105,13 @@ registerRpcMethod('getProgramAccounts',
     ])).optional(),
   }),
   z.array(z.object({ pubkey: zPubkey, account: zAccountInfo })),
-  'Returns all accounts owned by the provided program Pubkey.',
+  'Returns all accounts owned by the provided program Pubkey. Use filters and data slices to reduce response size. Accounts that do not exist will be omitted from the results. To handle more than 100 accounts, batch multiple calls to this method if not supported 1000 rate limit.',
 );
 
 registerRpcMethod('getLargestAccounts',
   z.object({ commitment: zCommitment, filter: z.enum(['circulating', 'nonCirculating']).optional() }),
   zCtx(z.array(z.object({ address: zPubkey, lamports: zLamports }))),
-  'Returns the 20 largest accounts, by lamport balance.',
+  'Returns the 20 largest accounts, by lamport balance. Accounts that do not exist will be omitted from the results. To handle more than 20 accounts, batch multiple calls to this method if not supported 1000 rate limit.',
 );
 
 // ── 2. Block ────────────────────────────────────────────────────
@@ -140,13 +140,13 @@ registerRpcMethod('getBlock',
 registerRpcMethod('getBlockHeight',
   z.object({ commitment: zCommitment, minContextSlot: zMinCtxSlot }),
   z.number(),
-  'Returns the current block height of the node.',
+  'Returns the current block height of the node. This is the number of the highest slot that has been processed by the node, and may be higher than the block height of the highest confirmed block.',
 );
 
 registerRpcMethod('getBlockTime',
   z.object({ slot: zSlot }),
   z.number().nullable(),
-  'Returns the estimated production time of a block as Unix timestamp.',
+  'Returns the estimated production time of a block as Unix timestamp. Returns null if the block is not available or does not have a timestamp. This is not a real-time clock — it is based on the block producer’s clock and may be skewed or missing. For real-time monitoring of new blocks, subscribe to slot notifications via WebSocket instead.',
 );
 
 registerRpcMethod('getBlockProduction',
@@ -159,31 +159,31 @@ registerRpcMethod('getBlockProduction',
     byIdentity: z.record(zPubkey, z.tuple([z.number(), z.number()])),
     range: z.object({ firstSlot: zSlot, lastSlot: zSlot }),
   })),
-  'Returns recent block production information from the current or previous epoch.',
+  'Returns recent block production information from the current or previous epoch. Use the identity filter to return results for a specific validator. To get production information for a specific slot, use getBlock with the rewards field instead. To handle more than 1000 blocks, batch multiple calls to this method if not supported 1000 rate limit.',
 );
 
 registerRpcMethod('getBlocks',
   z.object({ startSlot: zSlot, endSlot: zSlot.optional(), commitment: zCommitment }),
   z.array(zSlot),
-  'Returns a list of confirmed blocks between two slots.',
+  'Returns a list of confirmed blocks between two slots. To handle more than 1000 blocks, batch multiple calls to this method if not supported 1000 rate limit.',
 );
 
 registerRpcMethod('getBlocksWithLimit',
   z.object({ startSlot: zSlot, limit: z.number().int().positive(), commitment: zCommitment }),
   z.array(zSlot),
-  'Returns a list of confirmed blocks starting at the given slot, for up to limit blocks.',
+  'Returns a list of confirmed blocks starting at the given slot, for up to limit blocks. To handle more than 1000 blocks, batch multiple calls to this method if not supported 1000 rate limit.',
 );
 
 registerRpcMethod('getBlockCommitment',
   z.object({ slot: zSlot }),
   z.object({ commitment: z.array(z.number()).nullable(), totalStake: z.number() }),
-  'Returns commitment for particular block.',
+  'Returns commitment for particular block. To handle more than 1000 blocks, batch multiple calls to this method if not supported 1000 rate limit. Note that commitment data for older blocks may be purged from the ledger over time, so this method may return null for older slots. Be aware of this when using it for historical analysis or monitoring of past events. For real-time monitoring of new blocks, subscribe to slot notifications via WebSocket instead.',
 );
 
 registerRpcMethod('getFirstAvailableBlock',
   z.object({}),
   zSlot,
-  'Returns the slot of the lowest confirmed block that has not been purged from the ledger.',
+  'Returns the slot of the lowest confirmed block that has not been purged from the ledger. To handle more than 1000 blocks, batch multiple calls to this method if not supported 1000 rate limit. Note that older blocks may be purged from the ledger over time, so this method may return a slot that is higher than the actual first block produced on the network. Be aware of this when using it for historical analysis or monitoring of past events. For real-time monitoring of new blocks, subscribe to slot notifications via WebSocket instead.',
 );
 
 // ── 3. Transaction ──────────────────────────────────────────────
@@ -212,7 +212,7 @@ registerRpcMethod('getTransaction',
     blockTime: z.number().nullable(),
     version: z.union([z.number(), z.literal('legacy')]).optional(),
   }).nullable(),
-  'Returns transaction details for a confirmed transaction.',
+  'Returns transaction details for a confirmed transaction. To get transactions that are still pending or recently processed, subscribe to signature notifications via WebSocket instead. Note that transaction data for older transactions may be purged from the ledger over time, so this method may return null for older signatures. Be aware of this when using it for historical analysis or monitoring of past events. For real-time monitoring of new transactions, subscribe to signature notifications via WebSocket instead. To get the status of a transaction without fetching full details, use getSignatureStatuses instead. To handle more than 1000 transactions, batch multiple calls to this method if not supported 1000 rate limit. ',
 );
 
 registerRpcMethod('getSignaturesForAddress',
@@ -232,7 +232,7 @@ registerRpcMethod('getSignaturesForAddress',
     blockTime: z.number().nullable(),
     confirmationStatus: z.enum(['processed', 'confirmed', 'finalized']).nullable(),
   })),
-  'Returns signatures for confirmed transactions that include the given address.',
+  'Returns signatures for confirmed transactions that include the given address. To handle more than 1000 signatures, batch multiple calls to this method if not supported 1000 rate limit.',
 );
 
 registerRpcMethod('getSignatureStatuses',
@@ -243,7 +243,7 @@ registerRpcMethod('getSignatureStatuses',
     err: z.unknown(),
     confirmationStatus: z.enum(['processed', 'confirmed', 'finalized']).nullable(),
   }).nullable())),
-  'Returns the statuses of a list of signatures.',
+  'Returns the statuses of a list of signatures. If searchTransactionHistory is false or not provided, this method will only return statuses for signatures that are recent enough to still be in the transaction history cache. If searchTransactionHistory is true, this method will also search the full transaction history, which may be slower but can find older signatures. To handle more than 1000 signatures, batch multiple calls to this method if not supported 1000 rate limit. ',
 );
 
 registerRpcMethod('getTransactionCount',
