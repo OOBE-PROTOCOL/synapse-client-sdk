@@ -97,6 +97,21 @@ const RAW_PRESETS = [
     npmPackage: '@modelcontextprotocol/server-brave-search',
     timeout: 15_000,
   },
+
+  // ── Orbis API Marketplace ────────────────────────────────────
+  {
+    id: 'orbis',
+    name: 'Orbis API Marketplace',
+    description:
+      'Search and call 12,000+ APIs (finance, AI, blockchain, data enrichment, and more) ' +
+      'on the Orbis marketplace. Agents pay per call in USDC on Base via x402 — ' +
+      'no account or API key required. Pass an optional x-orbis-key header for key-based auth.',
+    transport: 'sse',
+    url: 'https://orbisapi.com/api/mcp/sse',
+    toolPrefix: 'orbis_',
+    docsUrl: 'https://orbisapi.com',
+    timeout: 30_000,
+  },
 ] as const satisfies McpPreset[];
 
 /* ═══════════════════════════════════════════════════════════════
