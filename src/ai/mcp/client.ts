@@ -62,6 +62,8 @@ import type {
 } from './types';
 import { MCP_PROTOCOL_VERSION, MCP_JSONRPC_VERSION } from './types';
 import type { SynapsePlugin, PluginContext, PluginProtocol } from '../plugins/types';
+import { listPresets, getPreset } from './presets/registry';
+import type { McpPreset, McpPresetMeta, McpPresetOverrides } from './presets/types';
 
 /* ═══════════════════════════════════════════════════════════════
  *  Types
@@ -217,6 +219,120 @@ export class McpClientBridge {
   async disconnectAll(): Promise<void> {
     const ids = [...this.connections.keys()];
     await Promise.all(ids.map((id) => this.disconnect(id)));
+  }
+
+  /* ── Preset API ───────────────────────────────────────────── */
+
+  /**
+   * List all registered MCP server presets (metadata only, no secrets).
+   *
+   * ```ts
+   * const presets = bridge.listMcpPresets();
+   * // [{ id: 'github', name: 'GitHub', transport: 'stdio', ... }, ...]
+   * ```
+   */
+  listMcpPresets(): McpPresetMeta[] {
+    return listPresets().map(({ id, name, description, transport, toolPrefix, docsUrl, npmPackage }) => ({
+      id,
+      name,
+      description,
+      transport,
+      toolPrefix,
+      docsUrl,
+      npmPackage,
+    }));
+  }
+
+  /**
+   * Connect using a registered preset, merging caller-supplied runtime
+   * credentials into the preset's placeholder values.
+   *
+   * ```ts
+   * await bridge.connectPreset('github', {
+   *   env: { GITHUB_TOKEN: process.env.GITHUB_TOKEN! },
+   * });
+   *
+   * await bridge.connectPreset('orbis', {
+   *   headers: { Authorization: `Bearer ${process.env.ORBIS_TOKEN}` },
+   * });
+   * ```
+   *
+   * @param presetId - Stable preset identifier (see `listMcpPresets()`).
+   * @param overrides - Runtime credentials and optional timeout override.
+   */
+  async connectPreset(
+    presetId: string,
+    overrides: McpPresetOverrides = {},
+  ): Promise<McpConnectionStatus> {
+    const preset = getPreset(presetId);
+    if (!preset) {
+      const available = listPresets().map((p) => p.id).join(', ');
+      throw new Error(
+        `Unknown MCP preset "${presetId}". Available presets: ${available}`,
+      );
+    }
+
+    const config = this.resolvePresetConfig(preset, overrides);
+    return this.connect(config);
+  }
+
+  /**
+   * Merge a preset with caller overrides into an `McpExternalServerConfig`.
+   * Resolves placeholder strings like `${MY_VAR}` against `overrides.env`.
+   */
+  private resolvePresetConfig(
+    preset: McpPreset,
+    overrides: McpPresetOverrides,
+  ): McpExternalServerConfig {
+    const base: McpExternalServerConfig = {
+      id: preset.id,
+      name: preset.name,
+      transport: preset.transport,
+      toolPrefix: preset.toolPrefix,
+      timeout: overrides.timeout ?? preset.timeout,
+    };
+
+    if (preset.transport === 'stdio') {
+      base.command = preset.command;
+      // Resolve placeholder args (e.g. '${DATABASE_URL}' → real value)
+      base.args = (preset.args ?? []).map((arg) => {
+        const match = /^\$\{([A-Z0-9_]+)\}$/.exec(arg);
+        if (match) {
+          const key = match[1]!;
+          return overrides.env?.[key] ?? arg;
+        }
+        return arg;
+      });
+      // Merge preset env placeholders with real overrides (overrides win)
+      const presetEnv = (preset.env ?? {}) as Record<string, string>;
+      const resolvedEnv: Record<string, string> = {};
+      for (const [k, v] of Object.entries(presetEnv)) {
+        const sv = String(v);
+        const match = /^\$\{([A-Z0-9_]+)\}$/.exec(sv);
+        resolvedEnv[k] = match
+          ? (overrides.env?.[match[1]!] ?? sv)
+          : sv;
+      }
+      // Also include any extra keys from overrides.env not already in preset
+      Object.assign(resolvedEnv, overrides.env);
+      if (Object.keys(resolvedEnv).length > 0) base.env = resolvedEnv;
+    } else {
+      base.url = preset.url;
+      // Merge preset header placeholders with real overrides
+      const presetHeaders = (preset.headers ?? {}) as Record<string, string>;
+      const resolvedHeaders: Record<string, string> = {};
+      for (const [k, v] of Object.entries(presetHeaders)) {
+        const sv = String(v);
+        const match = /\$\{([A-Z0-9_]+)\}/.exec(sv);
+        resolvedHeaders[k] = match
+          ? sv.replace(/\$\{[A-Z0-9_]+\}/, overrides.headers?.[k] ?? overrides.env?.[match[1]!] ?? sv)
+          : sv;
+      }
+      Object.assign(resolvedHeaders, overrides.headers);
+      if (Object.keys(resolvedHeaders).length > 0) base.headers = resolvedHeaders;
+    }
+
+    return base;
   }
 
   /* ── Tool Access ──────────────────────────────────────────── */

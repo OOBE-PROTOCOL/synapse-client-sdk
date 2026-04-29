@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.6] — 2026-04-29
+
+### ✨ Added
+
+- **feat(mcp): MCP Server Preset Registry** — typed, secret-free registry of well-known external
+  MCP server connection templates (`src/ai/mcp/presets/`).
+
+  | Export | Description |
+  |--------|-------------|
+  | `PRESET_REGISTRY` | Frozen `ReadonlyMap<string, McpPreset>` of all registered presets, validated at import time via Zod |
+  | `listPresets()` | Returns all presets as an array |
+  | `getPreset(id)` | Looks up a single preset by stable kebab-case id |
+  | `McpPresetSchema` | Zod schema — enforces placeholder-only `env`/`headers`, kebab-case ids, underscore-suffixed `toolPrefix` |
+  | `McpPreset` / `McpPresetMeta` / `McpPresetOverrides` | TypeScript types |
+
+  Bundled presets (all secret-free):
+
+  | ID | Transport | Tool Prefix |
+  |----|-----------|-------------|
+  | `github` | stdio | `github_` |
+  | `postgres` | stdio | `pg_` |
+  | `filesystem` | stdio | `fs_` |
+  | `slack` | stdio | `slack_` |
+  | `brave-search` | stdio | `brave_` |
+
+- **feat(mcp): `McpClientBridge.listMcpPresets()`** — returns `McpPresetMeta[]` (id, name,
+  transport, toolPrefix, docsUrl, npmPackage). No instantiation needed.
+
+- **feat(mcp): `McpClientBridge.connectPreset(id, overrides?)`** — connects using a registered
+  preset, resolving `${PLACEHOLDER}` values in `env`/`headers`/`args` with caller-supplied
+  runtime credentials. Strict validation before the connection attempt.
+
+  ```ts
+  await bridge.connectPreset('github', {
+    env: { GITHUB_TOKEN: process.env.GITHUB_PERSONAL_ACCESS_TOKEN! },
+  });
+
+  await bridge.connectPreset('postgres', {
+    env: { DATABASE_URL: process.env.DATABASE_URL! },
+  });
+  ```
+
+- **feat(rpc): `getProgramAccountsV2` Synapse extension** — paginated, cursor-based replacement
+  for `getProgramAccounts`. HMAC-signed `paginationKey`, bounded pages (limit 1–1000), works on
+  programs with millions of accounts (tested: metaplex-core 6.4 M+). Includes auto-accelerated
+  secondary indexes for known metaplex-core collection filter shapes.
+  Documented in `docs_md/11_MCP.md` and `GPA_V2_AND_GSFA_V2.md`.
+
+- **feat(rpc): `getSignaturesForAddressV2` Synapse extension** — paginated, always-on replacement
+  for `getSignaturesForAddress`. HMAC-signed cursors, warm cache for hot addresses (~0.05–0.1 s on
+  cache hits), cursor is address-bound (tamper-proof).
+  Documented in `docs_md/11_MCP.md` and `GPA_V2_AND_GSFA_V2.md`.
+
+### 📝 Documentation
+
+- Added "Preset Registry" section to `docs_md/11_MCP.md` with usage examples for all bundled presets
+- Added "Synapse Extension Methods" appendix to `docs_md/11_MCP.md` covering `getProgramAccountsV2`
+  and `getSignaturesForAddressV2` (request/response shapes, TypeScript types, single-page and
+  async-iterator patterns, latency tables, secondary indexes, error codes, cursor rules, migration guide)
+- Added `GPA_V2_AND_GSFA_V2.md` — standalone reference doc for the two V2 extension methods
+- Added "Adding an MCP Server Preset" section to `CONTRIBUTING.md` with field rules,
+  secret-handling policy, stdio vs SSE guidance, and PR checklist
+
+---
+
 ## [2.0.5] — 2026-03-12
 
 ### ✨ Added
