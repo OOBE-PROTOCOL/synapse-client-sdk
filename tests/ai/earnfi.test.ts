@@ -27,7 +27,7 @@ describe('@earn-fi/agent-client package', () => {
     expect(EARNFI_DEFAULT_API_BASE).toBe('https://app.earnfi.fun/api/ai-agent/v1');
   });
 
-  it('uses PayAI-compatible compute budget limits', () => {
+  it('uses x402 facilitator compute budget limits', () => {
     expect(X402_COMPUTE_UNIT_LIMIT).toBe(40_000);
   });
 });
