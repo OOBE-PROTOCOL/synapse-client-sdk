@@ -86,10 +86,10 @@ async function executeEarnFi(
 
   switch (method.name) {
     case 'getCatalog':
-      return client.get('/catalog');
+      return client.getCatalog();
 
     case 'getX402Descriptor':
-      return client.get('/x402');
+      return client.getX402Preview();
 
     case 'fetchRegisterChallenge':
       return client.get('/register/challenge', {
@@ -101,77 +101,100 @@ async function executeEarnFi(
       return client.post('/register', input);
 
     case 'createSocialJob':
-      return client.x402Get(
-        '/jobs/social',
-        withToken({
-          task_type: String(input.taskType),
-          slots: String(input.slots),
-          reward_per_user: String(input.rewardPerUser),
-          execution_mode: String(input.executionMode ?? 'human'),
-          content_url: input.contentUrl ? String(input.contentUrl) : undefined,
-          title: input.title ? String(input.title) : undefined,
-        }),
-      );
+      return client.createSocialJob({
+        taskType: String(input.taskType),
+        slots: Number(input.slots),
+        rewardPerUser: String(input.rewardPerUser),
+        executionMode: (input.executionMode as 'human' | undefined) ?? 'human',
+        contentUrl: input.contentUrl ? String(input.contentUrl) : undefined,
+        title: input.title ? String(input.title) : undefined,
+        agentToken: token,
+      });
 
     case 'createManualJob':
-      return client.x402Get(
-        '/jobs/manual',
-        withToken({
-          title: String(input.title),
-          instructions: String(input.instructions),
-          slots: String(input.slots),
-          reward_per_user: String(input.rewardPerUser),
-          verification_method: String(input.verificationMethod ?? 'manual'),
-          execution_mode: String(input.executionMode ?? 'human'),
-        }),
-      );
+      return client.createManualJob({
+        title: String(input.title),
+        instructions: String(input.instructions),
+        slots: Number(input.slots),
+        rewardPerUser: String(input.rewardPerUser),
+        verificationMethod: (input.verificationMethod as 'manual' | 'auto' | undefined) ?? 'manual',
+        executionMode: (input.executionMode as 'human' | undefined) ?? 'human',
+        agentToken: token,
+      });
 
     case 'createContestJob':
-      return client.x402Get(
-        '/jobs/contest',
-        withToken({
-          title: String(input.title),
-          instructions: String(input.instructions),
-          total_prize_pool: String(input.totalPrizePool),
-        }),
-      );
+      return client.createContestJob({
+        title: String(input.title),
+        instructions: String(input.instructions),
+        totalPrizePool: String(input.totalPrizePool),
+        agentToken: token,
+      });
 
     case 'createInterrupt':
-      return client.x402Get(
-        '/interrupt',
-        withToken({
-          question: String(input.question),
-          slots: String(input.slots),
-          reward_per_user: String(input.rewardPerUser),
-        }),
-      );
+      return client.createInterrupt({
+        question: String(input.question),
+        slots: Number(input.slots),
+        rewardPerUser: String(input.rewardPerUser),
+        agentToken: token,
+      });
 
-    case 'getJob': {
-      const params: Record<string, string | undefined> = {};
-      if (input.secret) params.secret = String(input.secret);
-      else if (token) params.agent_token = token;
-      return client.get(`/jobs/${encodeURIComponent(String(input.jobId))}`, params);
-    }
+    case 'getJob':
+      return client.getJob(String(input.jobId), {
+        secret: input.secret ? String(input.secret) : undefined,
+        agentToken: token,
+      });
 
-    case 'listSubmissions': {
-      const params: Record<string, string | undefined> = {};
-      if (input.secret) params.secret = String(input.secret);
-      else if (token) params.agent_token = token;
-      return client.get(`/jobs/${encodeURIComponent(String(input.jobId))}/submissions`, params);
-    }
+    case 'listSubmissions':
+      return client.listSubmissions(String(input.jobId), {
+        secret: input.secret ? String(input.secret) : undefined,
+        agentToken: token,
+      });
 
-    case 'listCompletions': {
-      const params: Record<string, string | undefined> = {};
-      if (input.secret) params.secret = String(input.secret);
-      else if (token) params.agent_token = token;
-      return client.get(`/jobs/${encodeURIComponent(String(input.jobId))}/completions`, params);
-    }
+    case 'listCompletions':
+      return client.listCompletions(String(input.jobId), {
+        secret: input.secret ? String(input.secret) : undefined,
+        agentToken: token,
+      });
 
     case 'pauseJob':
-      return client.get(`/jobs/${encodeURIComponent(String(input.jobId))}/pause`, withToken({}));
+      return client.pauseJob(String(input.jobId), token);
 
     case 'getInterruptStatus':
-      return client.get(`/interrupt/${encodeURIComponent(String(input.interruptId))}`);
+      return client.getInterruptStatus(String(input.interruptId), {
+        secret: input.secret ? String(input.secret) : undefined,
+        agentToken: token,
+      });
+
+    case 'listPendingVerifications':
+      return client.listPendingVerifications(String(input.jobId), token);
+
+    case 'approveVerification':
+      return client.approveVerification(String(input.verificationId), token);
+
+    case 'rejectVerification':
+      return client.rejectVerification(String(input.verificationId), {
+        reason: input.reason ? String(input.reason) : undefined,
+        agentToken: token,
+      });
+
+    case 'listContestSubmissions':
+      return client.listContestSubmissions(String(input.jobId), token);
+
+    case 'markContestWinner':
+      return client.markContestWinner(String(input.jobId), {
+        submissionId: String(input.submissionId),
+        rankPosition: input.rankPosition !== undefined ? Number(input.rankPosition) : undefined,
+        agentToken: token,
+      });
+
+    case 'getCreatorJobDetail':
+      return client.getCreatorJobDetail(String(input.jobId), token);
+
+    case 'listJobParticipants':
+      return client.listJobParticipants(String(input.jobId), token);
+
+    case 'listJobPayments':
+      return client.listJobPayments(String(input.jobId), token);
 
     default:
       throw new Error(`[EarnFiPlugin] Unknown method: ${method.name}`);

@@ -151,15 +151,88 @@ reg(
   z.object({ jobId: zJobId, agentToken: zAgentToken }),
   genericJson,
   'Pause or resume a job (creator, agent_token).',
-  { httpMethod: 'GET', path: '/jobs/{id}/pause' },
+  { httpMethod: 'POST', path: '/jobs/{id}/pause' },
 );
 
 reg(
   'getInterruptStatus',
-  z.object({ interruptId: z.string() }),
+  z.object({ interruptId: z.string(), secret: zSecret, agentToken: zAgentToken }),
   genericJson,
   'Read human interrupt record by id.',
   { httpMethod: 'GET', path: '/interrupt/{id}' },
+);
+
+reg(
+  'listPendingVerifications',
+  z.object({ jobId: zJobId, agentToken: zAgentToken }),
+  genericJson,
+  'List pending manual verifications for a job (creator).',
+  { httpMethod: 'GET', path: '/jobs/{id}/verifications' },
+);
+
+reg(
+  'approveVerification',
+  z.object({ verificationId: z.string(), agentToken: zAgentToken }),
+  genericJson,
+  'Approve a pending manual verification.',
+  { httpMethod: 'POST', path: '/verifications/{id}/approve' },
+);
+
+reg(
+  'rejectVerification',
+  z.object({
+    verificationId: z.string(),
+    reason: z.string().optional(),
+    agentToken: zAgentToken,
+  }),
+  genericJson,
+  'Reject a pending manual verification.',
+  { httpMethod: 'POST', path: '/verifications/{id}/reject' },
+);
+
+reg(
+  'listContestSubmissions',
+  z.object({ jobId: zJobId, agentToken: zAgentToken }),
+  genericJson,
+  'List contest submissions (creator).',
+  { httpMethod: 'GET', path: '/jobs/{id}/contest/submissions' },
+);
+
+reg(
+  'markContestWinner',
+  z.object({
+    jobId: zJobId,
+    submissionId: z.string(),
+    rankPosition: z.number().int().positive().optional(),
+    agentToken: zAgentToken,
+  }),
+  genericJson,
+  'Mark a contest submission as winner.',
+  { httpMethod: 'POST', path: '/jobs/{id}/contest/mark-winner' },
+);
+
+reg(
+  'getCreatorJobDetail',
+  z.object({ jobId: zJobId, agentToken: zAgentToken }),
+  genericJson,
+  'Extended creator job detail view.',
+  { httpMethod: 'GET', path: '/jobs/{id}/detail' },
+);
+
+reg(
+  'listJobParticipants',
+  z.object({ jobId: zJobId, agentToken: zAgentToken }),
+  genericJson,
+  'List users who joined or completed a job.',
+  { httpMethod: 'GET', path: '/jobs/{id}/users' },
+);
+
+reg(
+  'listJobPayments',
+  z.object({ jobId: zJobId, agentToken: zAgentToken }),
+  genericJson,
+  'List payment rows linked to a job.',
+  { httpMethod: 'GET', path: '/jobs/{id}/payments' },
 );
 
 export { earnfiMethods, reg as registerEarnFiMethod };
