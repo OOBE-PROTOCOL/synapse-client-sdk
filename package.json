@@ -226,6 +226,11 @@
       "import": "./dist/esm/ai/plugins/blinks/index.js",
       "require": "./dist/cjs/ai/plugins/blinks/index.js"
     },
+    "./ai/plugins/earnfi": {
+      "types": "./dist/esm/ai/plugins/earnfi/index.d.ts",
+      "import": "./dist/esm/ai/plugins/earnfi/index.js",
+      "require": "./dist/cjs/ai/plugins/earnfi/index.js"
+    },
     "./ai/mcp": {
       "types": "./dist/esm/ai/mcp/index.d.ts",
       "import": "./dist/esm/ai/mcp/index.js",
@@ -323,7 +328,8 @@
     "pg": ">=8.0.0",
     "@oobe-protocol-labs/synapse-sap-sdk": ">=0.1.0",
     "@coral-xyz/anchor": ">=0.30.0",
-    "@solana/web3.js": ">=1.90.0"
+    "@solana/web3.js": ">=1.90.0",
+    "@solana/spl-token": ">=0.4.0"
   },
   "peerDependenciesMeta": {
     "zod": {
@@ -345,6 +351,9 @@
       "optional": true
     },
     "@solana/web3.js": {
+      "optional": true
+    },
+    "@solana/spl-token": {
       "optional": true
     }
   },
