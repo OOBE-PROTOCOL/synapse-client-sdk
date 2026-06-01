@@ -274,6 +274,19 @@ const RAW_PRESETS = [
     docsUrl: 'https://docs.acedata.cloud/wan/overview',
     timeout: 30_000,
   },
+  // ── EarnFi Human Execution (x402) ────────────────────────────
+  {
+    id: 'earnfi',
+    name: 'EarnFi Human Execution',
+    description:
+      'Fund human social campaigns, manual tasks, contests, and interrupt Q&A via x402 USDC on Solana. ' +
+      'Hosted MCP for the EarnFi Agent API.',
+    transport: 'sse',
+    url: 'https://app.earnfi.fun/mcp',
+    toolPrefix: 'earnfi_',
+    docsUrl: 'https://app.earnfi.fun/skill.md',
+    timeout: 30_000,
+  },
 ] as const satisfies McpPreset[];
 
 /* ═══════════════════════════════════════════════════════════════
