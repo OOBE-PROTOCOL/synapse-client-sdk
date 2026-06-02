@@ -30,6 +30,28 @@ describe('@earn-fi/agent-client package', () => {
   it('uses x402 facilitator compute budget limits', () => {
     expect(X402_COMPUTE_UNIT_LIMIT).toBe(40_000);
   });
+
+  it('createSocialJob mock sends Agent-Token on x402 request', async () => {
+    const challenge = {
+      x402Version: 2,
+      resource: { url: 'https://app.earnfi.fun/api/ai-agent/v1/jobs/social' },
+      accepts: [{ scheme: 'exact', network: 'solana:x', amount: '1000', payTo: 'x', asset: 'USDC' }],
+    };
+    const b64 = Buffer.from(JSON.stringify(challenge)).toString('base64');
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      status: 402,
+      headers: new Headers({ 'payment-required': b64 }),
+      text: async () => '{}',
+    }) as unknown as typeof fetch;
+
+    const client = new EarnFiHttpClient({ agentToken: 'syn-tok' });
+    await expect(
+      client.createSocialJob({ taskType: 'follow', slots: 1, rewardPerUser: '0.03' }),
+    ).rejects.toThrow(/wallet/);
+
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['Agent-Token']).toBe('syn-tok');
+  });
 });
 
 describe('EarnFi schemas', () => {
