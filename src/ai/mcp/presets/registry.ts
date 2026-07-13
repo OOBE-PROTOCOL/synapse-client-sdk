@@ -287,6 +287,24 @@ const RAW_PRESETS = [
     docsUrl: 'https://app.earnfi.fun/skill.md',
     timeout: 30_000,
   },
+
+  // ── OpenVecta (LLM inference, x402) ──────────────────────────
+  {
+    id: 'openvecta',
+    name: 'OpenVecta',
+    description:
+      'LLM inference gateway — chat, embeddings, and per-call cost estimates across 19+ ' +
+      'OpenAI-compatible models, priced in USDC on Solana. Works with a prepaid API key or ' +
+      'accountless x402 pay-per-call.',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@openvecta/mcp'],
+    env: { OPENVECTA_API_KEY: '${OPENVECTA_API_KEY}' },
+    toolPrefix: 'openvecta_',
+    docsUrl: 'https://openvecta.com/docs',
+    npmPackage: '@openvecta/mcp',
+    timeout: 30_000,
+  },
 ] as const satisfies McpPreset[];
 
 /* ═══════════════════════════════════════════════════════════════
