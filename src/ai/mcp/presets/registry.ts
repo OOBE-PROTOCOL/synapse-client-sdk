@@ -112,6 +112,20 @@ const RAW_PRESETS = [
     docsUrl: 'https://orbisapi.com',
     timeout: 30_000,
   },
+
+  // ── The Stall ────────────────────────────────────────────────
+  {
+    id: 'the-stall',
+    name: 'The Stall',
+    description:
+      '210 pay-per-call data tools (finance, crypto, DeFi, macro, OSINT, weather) via x402 on Base. ' +
+      'No API key or account required — agents pay per call in USDC.',
+    transport: 'sse',
+    url: 'https://the-stall.intuitek.ai/sse',
+    toolPrefix: 'stall_',
+    docsUrl: 'https://the-stall.intuitek.ai',
+    timeout: 30_000,
+  },
 ] as const satisfies McpPreset[];
 
 /* ═══════════════════════════════════════════════════════════════
