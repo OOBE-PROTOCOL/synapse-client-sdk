@@ -394,6 +394,26 @@ await bridge.connectPreset('filesystem', {
 });
 ```
 
+### Connect via preset — stdio (OpenVecta LLM inference)
+
+```ts
+// Keyed mode — prepaid OpenVecta API key (get one at https://openvecta.com)
+await bridge.connectPreset('openvecta', {
+  env: { OPENVECTA_API_KEY: process.env.OPENVECTA_API_KEY! },
+});
+// Imports: openvecta_list_models, openvecta_chat, openvecta_embed, openvecta_estimate_cost
+
+// Accountless x402 mode — the agent pays per call in USDC on Solana.
+// Use a dedicated low-balance wallet; no OpenVecta account needed.
+// (Blank out OPENVECTA_API_KEY — the server auto-detects its mode from env.)
+await bridge.connectPreset('openvecta', {
+  env: {
+    OPENVECTA_API_KEY: '',
+    SOLANA_PRIVATE_KEY: process.env.AGENT_WALLET_KEY!,
+  },
+});
+```
+
 ### Registered presets
 
 | ID | Name | Transport | Tool Prefix | npm Package |
@@ -403,6 +423,7 @@ await bridge.connectPreset('filesystem', {
 | `filesystem` | Filesystem | stdio | `fs_` | `@modelcontextprotocol/server-filesystem` |
 | `slack` | Slack | stdio | `slack_` | `@modelcontextprotocol/server-slack` |
 | `brave-search` | Brave Search | stdio | `brave_` | `@modelcontextprotocol/server-brave-search` |
+| `openvecta` | OpenVecta | stdio | `openvecta_` | `@openvecta/mcp` |
 
 > To add a new preset, see the [Contributing Guide — Adding an MCP Server Preset](../CONTRIBUTING.md#adding-an-mcp-server-preset).
 
