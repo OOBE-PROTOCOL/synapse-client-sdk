@@ -410,7 +410,7 @@ const solanaFacilitators = findFacilitatorsByNetwork('solana:5eykt4UsFv8P8NJdTRE
 
 ## Plugin System (SynapseAgentKit)
 
-The v2 plugin system provides **110 Solana-native tools** across 5 plugins and 18 protocols, all composable via a chainable `.use()` API:
+The v2 plugin system provides **114 Solana-native tools** across 6 plugins and 19 protocols, all composable via a chainable `.use()` API:
 
 ```ts
 import {
@@ -448,6 +448,22 @@ console.log(kit.summary());
 | **DeFiPlugin** | `pump`, `raydium-pools`, `orca`, `manifest`, `meteora`, `openbook`, `drift`, `adrena`, `lulo`, `jito` | 43 | AMM/CLMM pools, swaps, limit orders, perps, lending, MEV bundles |
 | **MiscPlugin** | `sns`, `alldomains`, `pyth`, `coingecko`, `gibwork`, `send-arcade` | 20 | Domain resolution (SNS/AllDomains), oracle prices, market data, bounties, gaming |
 | **BlinksPlugin** | `blinks` | 6 | Solana Actions spec: GET/POST actions, resolve dial.to, validate actions.json |
+| **UtiliaPlugin** | `utilia` | 4 | Wallet-funded priority fees, transaction diagnosis, token risk, and simulation via x402 |
+
+`UtiliaPlugin` is opt-in because its tools cost $0.002–$0.008 USDC per call.
+It inspects and pins each live quote, then invokes the application's
+action-time approval callback before signing:
+
+```ts
+import { UtiliaPlugin } from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins/utilia';
+
+kit.use(UtiliaPlugin, {
+  // Configure this client with a Solana mainnet USDC signer and an
+  // 8,000-atomic-unit ($0.008) per-call ceiling.
+  x402Client,
+  authorizePayment: async quote => showPaymentConfirmation(quote),
+});
+```
 
 ### Custom plugins
 
@@ -626,12 +642,13 @@ The package exposes granular entry points for consumers that need only a subset:
   "./das":        "DasClient + 11 DAS method functions",
   "./websocket":  "WsClient + subscription types",
   "./utils":      "Helpers + endpoint resolution",
-  "./ai/plugins": "SynapseAgentKit + all 5 plugins",
+  "./ai/plugins": "SynapseAgentKit + all 6 plugins",
   "./ai/plugins/token":  "TokenPlugin (22 tools)",
   "./ai/plugins/nft":    "NFTPlugin (19 tools)",
   "./ai/plugins/defi":   "DeFiPlugin (43 tools)",
   "./ai/plugins/misc":   "MiscPlugin (20 tools)",
   "./ai/plugins/blinks": "BlinksPlugin (6 tools)",
+  "./ai/plugins/utilia": "UtiliaPlugin (4 paid x402 tools)",
   "./ai/mcp":     "MCP server + client bridge"
 }
 ```
