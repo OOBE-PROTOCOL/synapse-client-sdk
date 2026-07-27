@@ -5,7 +5,7 @@
  * ```ts
  * import {
  *   SynapseAgentKit,
- *   TokenPlugin, NFTPlugin, DeFiPlugin, MiscPlugin, BlinksPlugin,
+ *   TokenPlugin, NFTPlugin, DeFiPlugin, MiscPlugin, BlinksPlugin, UtiliaPlugin,
  * } from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins';
  *
  * const kit = new SynapseAgentKit({ rpcUrl: '...' })
@@ -30,6 +30,12 @@ export { NFTPlugin } from './nft';
 export { DeFiPlugin } from './defi';
 export { MiscPlugin } from './misc';
 export { BlinksPlugin } from './blinks';
+export { UtiliaPlugin } from './utilia';
+
+export type {
+  UtiliaPaymentQuote,
+  UtiliaPluginConfig,
+} from './utilia';
 
 // ── Types ─────────────────────────────────────────────────────
 export type {

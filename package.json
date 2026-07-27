@@ -226,6 +226,11 @@
       "import": "./dist/esm/ai/plugins/blinks/index.js",
       "require": "./dist/cjs/ai/plugins/blinks/index.js"
     },
+    "./ai/plugins/utilia": {
+      "types": "./dist/esm/ai/plugins/utilia/index.d.ts",
+      "import": "./dist/esm/ai/plugins/utilia/index.js",
+      "require": "./dist/cjs/ai/plugins/utilia/index.js"
+    },
     "./ai/mcp": {
       "types": "./dist/esm/ai/mcp/index.d.ts",
       "import": "./dist/esm/ai/mcp/index.js",
