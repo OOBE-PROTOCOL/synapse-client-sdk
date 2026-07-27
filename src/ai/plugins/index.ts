@@ -35,7 +35,6 @@ export { UtiliaPlugin } from './utilia';
 export type {
   UtiliaPaymentQuote,
   UtiliaPluginConfig,
-  UtiliaX402Client,
 } from './utilia';
 
 // ── Types ─────────────────────────────────────────────────────

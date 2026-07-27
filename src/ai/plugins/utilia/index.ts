@@ -15,37 +15,46 @@
  *   });
  * ```
  *
- * @since 2.1.0
+ * @since 2.0.6
  */
-import type { SynapsePlugin, PluginContext } from "../types";
-import type { ProtocolMethod } from "../../tools/protocols/shared";
+import type { SynapsePlugin, PluginContext } from '../types';
+import type { ProtocolMethod } from '../../tools/protocols/shared';
 import type {
-  X402Client,
   X402PaymentRequired,
   X402PaymentRequirements,
   X402SettlementResponse,
-} from "../../gateway/x402";
+} from '../../gateway/x402';
 import {
+  X402Client,
   SOLANA_MAINNET,
   USDC_SOLANA_MAINNET,
   X402_HEADER_PAYMENT_REQUIRED,
   X402_HEADER_PAYMENT_RESPONSE,
   X402_HEADER_PAYMENT_SIGNATURE,
-} from "../../gateway/x402";
-import { utiliaMethods } from "./schemas";
+  decodePaymentHeader,
+} from '../../gateway/x402';
+import { utiliaMethods } from './schemas';
 
-export { utiliaMethods, utiliaMethodNames } from "./schemas";
+export { utiliaMethods, utiliaMethodNames } from './schemas';
 
-export const UTILIA_API_URL = "https://api.utilia.ink";
+export const UTILIA_API_URL = 'https://api.utilia.ink';
 export const UTILIA_SOLANA_RECEIVER =
-  "AX1TzKChcrgjVW2JMtcYFLgxerfH1XfW7etuSdMSUKh5";
+  'AX1TzKChcrgjVW2JMtcYFLgxerfH1XfW7etuSdMSUKh5';
 
-const EXPECTED_AMOUNTS: Record<string, string> = {
-  priorityFees: "2000",
-  transactionDiagnosis: "4000",
-  tokenRisk: "6000",
-  simulateTransaction: "8000",
-};
+/**
+ * Fail-closed price allowlist for Utilia's current `/v1` routes.
+ *
+ * These atomics are deliberately pinned rather than learned from an untrusted
+ * 402 response. If Utilia changes its public pricing, this plugin will reject
+ * the quote before authorization until a reviewed release updates this table.
+ */
+export const UTILIA_V1_PRICES_ATOMIC: Readonly<Record<string, string>> =
+  Object.freeze({
+    priorityFees: '2000',
+    transactionDiagnosis: '4000',
+    tokenRisk: '6000',
+    simulateTransaction: '8000',
+  });
 
 export interface UtiliaPaymentQuote {
   tool: string;
@@ -57,14 +66,9 @@ export interface UtiliaPaymentQuote {
   payTo: string;
 }
 
-export interface UtiliaX402Client {
-  interceptResponse: X402Client["interceptResponse"];
-  parseSettlementResponse: X402Client["parseSettlementResponse"];
-}
-
 export interface UtiliaPluginConfig {
   /** Synapse x402 buyer client configured with a Solana USDC signer and budget cap. */
-  x402Client?: UtiliaX402Client;
+  x402Client?: X402Client;
   /** Called for every exact live quote immediately before signing. */
   authorizePayment?: (quote: UtiliaPaymentQuote) => Promise<boolean>;
   /** Fetch implementation for tests or custom runtimes. */
@@ -77,7 +81,47 @@ interface PreparedRequest {
 }
 
 function readConfig(context: PluginContext): UtiliaPluginConfig {
-  return context.config as UtiliaPluginConfig;
+  const raw = context.config ?? {};
+  const x402Client = raw.x402Client;
+  const authorizePayment = raw.authorizePayment;
+  const fetchImpl = raw.fetch;
+
+  if (x402Client !== undefined && !(x402Client instanceof X402Client)) {
+    throw new TypeError(
+      '[UtiliaPlugin] x402Client must be a complete X402Client instance',
+    );
+  }
+  if (
+    authorizePayment !== undefined &&
+    !isPaymentAuthorizer(authorizePayment)
+  ) {
+    throw new TypeError(
+      '[UtiliaPlugin] authorizePayment must be an async approval function',
+    );
+  }
+  if (fetchImpl !== undefined && !isFetchImplementation(fetchImpl)) {
+    throw new TypeError(
+      '[UtiliaPlugin] fetch must be a fetch-compatible function',
+    );
+  }
+
+  return {
+    x402Client,
+    authorizePayment,
+    fetch: fetchImpl,
+  };
+}
+
+function isPaymentAuthorizer(
+  value: unknown,
+): value is NonNullable<UtiliaPluginConfig['authorizePayment']> {
+  return typeof value === 'function';
+}
+
+function isFetchImplementation(
+  value: unknown,
+): value is NonNullable<UtiliaPluginConfig['fetch']> {
+  return typeof value === 'function';
 }
 
 function buildRequest(
@@ -85,30 +129,30 @@ function buildRequest(
   input: Record<string, unknown>,
 ): PreparedRequest {
   switch (method.name) {
-    case "priorityFees": {
+    case 'priorityFees': {
       const url = new URL(`${UTILIA_API_URL}/v1/fees/priority`);
       for (const account of (input.accounts as string[] | undefined) ?? []) {
-        url.searchParams.append("account", account);
+        url.searchParams.append('account', account);
       }
       return { url: url.toString() };
     }
-    case "transactionDiagnosis":
+    case 'transactionDiagnosis':
       return {
         url: `${UTILIA_API_URL}/v1/transaction/${encodeURIComponent(input.signature as string)}`,
       };
-    case "tokenRisk":
+    case 'tokenRisk':
       return {
         url: `${UTILIA_API_URL}/v1/token/${encodeURIComponent(input.mint as string)}`,
       };
-    case "simulateTransaction":
+    case 'simulateTransaction':
       return {
         url: `${UTILIA_API_URL}/v1/transaction/simulate`,
         init: {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             transaction: input.transaction,
-            encoding: input.encoding ?? "base64",
+            encoding: input.encoding ?? 'base64',
             ...(input.accountAddresses
               ? { accountAddresses: input.accountAddresses }
               : {}),
@@ -120,10 +164,6 @@ function buildRequest(
   }
 }
 
-function decodeHeader<T>(raw: string): T {
-  return JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as T;
-}
-
 function headersToRecord(headers: Headers): Record<string, string> {
   const result: Record<string, string> = {};
   headers.forEach((value, key) => {
@@ -133,7 +173,13 @@ function headersToRecord(headers: Headers): Record<string, string> {
 }
 
 function decimalUsdc(amountAtomic: string): string {
-  return (Number(amountAtomic) / 1_000_000).toFixed(3);
+  const atomic = BigInt(amountAtomic);
+  const whole = atomic / 1_000_000n;
+  const fractional = (atomic % 1_000_000n)
+    .toString()
+    .padStart(6, '0')
+    .replace(/0+$/, '');
+  return fractional ? `${whole}.${fractional}` : whole.toString();
 }
 
 function validateQuote(
@@ -148,30 +194,30 @@ function validateQuote(
   }
   if (paymentRequired.resource?.url !== url) {
     throw new Error(
-      "[UtiliaPlugin] Payment resource URL does not match the requested Utilia URL",
+      '[UtiliaPlugin] Payment resource URL does not match the requested Utilia URL',
     );
   }
 
   const requirements = paymentRequired.accepts.find(
     (candidate) =>
-      candidate.scheme === "exact" &&
+      candidate.scheme === 'exact' &&
       candidate.network === SOLANA_MAINNET &&
       candidate.asset === USDC_SOLANA_MAINNET,
   );
   if (!requirements) {
     throw new Error(
-      "[UtiliaPlugin] Quote does not offer exact Solana mainnet USDC",
+      '[UtiliaPlugin] Quote does not offer exact Solana mainnet USDC',
     );
   }
 
-  const expectedAmount = EXPECTED_AMOUNTS[method.name];
+  const expectedAmount = UTILIA_V1_PRICES_ATOMIC[method.name];
   if (requirements.amount !== expectedAmount) {
     throw new Error(
       `[UtiliaPlugin] Expected ${expectedAmount} atomic USDC, received ${requirements.amount}`,
     );
   }
   if (requirements.payTo !== UTILIA_SOLANA_RECEIVER) {
-    throw new Error("[UtiliaPlugin] Quote receiver does not match Utilia");
+    throw new Error('[UtiliaPlugin] Quote receiver does not match Utilia');
   }
 
   return {
@@ -225,11 +271,11 @@ async function executeUtilia(
     quoteResponse.headers.get(X402_HEADER_PAYMENT_REQUIRED.toLowerCase());
   if (!paymentRequiredHeader) {
     throw new Error(
-      "[UtiliaPlugin] 402 response did not include PAYMENT-REQUIRED",
+      '[UtiliaPlugin] 402 response did not include PAYMENT-REQUIRED',
     );
   }
 
-  const paymentRequired = decodeHeader<X402PaymentRequired>(
+  const paymentRequired = decodePaymentHeader<X402PaymentRequired>(
     paymentRequiredHeader,
   );
   const { quote, requirements } = validateQuote(
@@ -240,16 +286,16 @@ async function executeUtilia(
 
   if (!config.x402Client || !config.authorizePayment) {
     return {
-      status: "payment_required",
+      status: 'payment_required',
       quote,
       message:
-        "Configure x402Client and authorizePayment, then obtain action-time approval for this exact quote.",
+        'Configure x402Client and authorizePayment, then obtain action-time approval for this exact quote.',
     };
   }
 
   if (!(await config.authorizePayment(quote))) {
     return {
-      status: "payment_declined",
+      status: 'payment_declined',
       quote,
     };
   }
@@ -257,16 +303,15 @@ async function executeUtilia(
   const intercepted = await config.x402Client.interceptResponse(
     quoteResponse.status,
     headersToRecord(quoteResponse.headers),
-    paymentRequired,
   );
   if (!intercepted.shouldRetry || !intercepted.paymentSignatureHeader) {
     throw new Error(
-      "[UtiliaPlugin] x402 client declined or could not sign the approved quote",
+      '[UtiliaPlugin] x402 client declined or could not sign the approved quote',
     );
   }
   if (!sameRequirements(intercepted.requirements, requirements)) {
     throw new Error(
-      "[UtiliaPlugin] x402 client selected payment requirements different from the approved quote",
+      '[UtiliaPlugin] x402 client selected payment requirements different from the approved quote',
     );
   }
 
@@ -312,7 +357,7 @@ function parseSettlementFallback(
     headers.get(X402_HEADER_PAYMENT_RESPONSE.toLowerCase());
   if (!raw) return null;
   try {
-    return decodeHeader<X402SettlementResponse>(raw);
+    return decodePaymentHeader<X402SettlementResponse>(raw);
   } catch {
     return null;
   }
@@ -320,23 +365,23 @@ function parseSettlementFallback(
 
 export const UtiliaPlugin: SynapsePlugin = {
   meta: {
-    id: "utilia",
-    name: "Utilia Solana Evidence",
+    id: 'utilia',
+    name: 'Utilia Solana Evidence',
     description:
-      "Wallet-funded Solana priority fees, transaction diagnosis, token risk, and simulation via x402",
-    version: "2.1.0",
-    author: "Utilia",
-    tags: ["solana", "x402", "preflight", "transactions", "fees", "token-risk"],
+      'Wallet-funded Solana priority fees, transaction diagnosis, token risk, and simulation via x402',
+    version: '2.0.6',
+    author: 'Utilia',
+    tags: ['solana', 'x402', 'preflight', 'transactions', 'fees', 'token-risk'],
     mcpResources: [
-      "solana://utilia/fees",
-      "solana://utilia/transaction/{signature}",
-      "solana://utilia/token/{mint}",
+      'solana://utilia/fees',
+      'solana://utilia/transaction/{signature}',
+      'solana://utilia/token/{mint}',
     ],
   },
   protocols: [
     {
-      id: "utilia",
-      name: "Utilia Solana Evidence",
+      id: 'utilia',
+      name: 'Utilia Solana Evidence',
       methods: utiliaMethods,
       baseUrl: UTILIA_API_URL,
     },
@@ -351,5 +396,3 @@ export const UtiliaPlugin: SynapsePlugin = {
     };
   },
 };
-
-export default UtiliaPlugin;

@@ -365,7 +365,6 @@ export {
   type McpResourceDescriptor,
   type UtiliaPaymentQuote,
   type UtiliaPluginConfig,
-  type UtiliaX402Client,
 } from './plugins';
 
 // ── MCP (Model Context Protocol) ──────────────────────────────

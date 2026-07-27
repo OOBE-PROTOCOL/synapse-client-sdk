@@ -454,6 +454,10 @@ console.log(kit.summary());
 It inspects and pins each live quote, then invokes the application's
 action-time approval callback before signing:
 
+The `/v1` prices are pinned in the plugin as a fail-closed security boundary.
+If Utilia changes a route price, the plugin rejects the quote before approval
+until a reviewed SDK release updates the allowlist.
+
 ```ts
 import { UtiliaPlugin } from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins/utilia';
 
