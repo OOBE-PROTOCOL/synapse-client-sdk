@@ -2,7 +2,7 @@
  * @module ai/plugins/utilia/schemas
  * @description Zod schemas for Utilia's paid Solana evidence tools.
  *
- * @since 2.0.6
+ * @since 2.0.7
  */
 import { z } from 'zod';
 import { createMethodRegistry } from '../../tools/protocols/shared';
