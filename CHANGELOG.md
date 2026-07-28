@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.7] - 2026-07-28
+
+### Added
+
+- Added the opt-in `UtiliaPlugin` at
+  `@oobe-protocol-labs/synapse-client-sdk/ai/plugins/utilia` with four wallet-funded
+  Solana evidence tools for priority fees, transaction diagnosis, token risk, and
+  unsigned transaction simulation.
+- Added fail-closed x402 v2 payment validation for exact Solana mainnet USDC quotes,
+  including route-specific price limits, receiver and resource checks, explicit
+  action-time authorization, and settlement evidence in tool results.
+- Added buyer-supplied x402 client support, documentation, and tests covering the
+  approved live $0.002 USDC compatibility payment.
+
+---
+
 ## [2.0.6] — 2026-04-29
 
 ### ✨ Added

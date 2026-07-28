@@ -15,7 +15,7 @@
  *   });
  * ```
  *
- * @since 2.0.6
+ * @since 2.0.7
  */
 import type { SynapsePlugin, PluginContext } from '../types';
 import type { ProtocolMethod } from '../../tools/protocols/shared';
@@ -369,7 +369,7 @@ export const UtiliaPlugin: SynapsePlugin = {
     name: 'Utilia Solana Evidence',
     description:
       'Wallet-funded Solana priority fees, transaction diagnosis, token risk, and simulation via x402',
-    version: '2.0.6',
+    version: '2.0.7',
     author: 'Utilia',
     tags: ['solana', 'x402', 'preflight', 'transactions', 'fees', 'token-risk'],
     mcpResources: [
