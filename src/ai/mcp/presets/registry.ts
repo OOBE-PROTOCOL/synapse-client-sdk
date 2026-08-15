@@ -126,6 +126,25 @@ const RAW_PRESETS = [
     docsUrl: 'https://the-stall.intuitek.ai',
     timeout: 30_000,
   },
+
+    // ── Farebox ──────────────────────────────────────────────────
+  {
+    id: 'farebox',
+    name: 'Farebox',
+    description:
+      'Access 36+ frontier LLMs (GPT-4o, Claude, Gemini, Llama, DeepSeek, Mistral, and more) ' +
+      'through a single OpenAI-compatible gateway. Agents pay per token in USDC on Solana — ' +
+      'prepaid via API key, or fully accountless via x402 pay-per-call. ' +
+      'Exposes tools: farebox_list_models, farebox_chat, farebox_call_skill, farebox_get_balance, farebox_get_usage.',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', 'farebox-mcp'],
+    env: { FAREBOX_API_KEY: '${FAREBOX_API_KEY}' },
+    toolPrefix: 'farebox_',
+    docsUrl: 'https://farebox.fun',
+    npmPackage: 'farebox-mcp',
+    timeout: 30_000,
+  },
 ] as const satisfies McpPreset[];
 
 /* ═══════════════════════════════════════════════════════════════
