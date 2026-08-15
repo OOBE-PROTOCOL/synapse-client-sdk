@@ -226,10 +226,16 @@
       "import": "./dist/esm/ai/plugins/blinks/index.js",
       "require": "./dist/cjs/ai/plugins/blinks/index.js"
     },
+    "./ai/plugins/utilia": {
+      "types": "./dist/esm/ai/plugins/utilia/index.d.ts",
+      "import": "./dist/esm/ai/plugins/utilia/index.js",
+      "require": "./dist/cjs/ai/plugins/utilia/index.js"
+    },
     "./ai/plugins/earnfi": {
       "types": "./dist/esm/ai/plugins/earnfi/index.d.ts",
       "import": "./dist/esm/ai/plugins/earnfi/index.js",
       "require": "./dist/cjs/ai/plugins/earnfi/index.js"
+    },
     },
     "./ai/mcp": {
       "types": "./dist/esm/ai/mcp/index.d.ts",

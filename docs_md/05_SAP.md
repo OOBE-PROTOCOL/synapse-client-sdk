@@ -15,7 +15,7 @@ SAP (Solana Agent Protocol) is a **standalone on-chain protocol** for AI agent i
 | **Protocol (Anchor/Rust)** | [github.com/OOBE-PROTOCOL/synapse-sap](https://github.com/OOBE-PROTOCOL/synapse-sap) |
 | **SAP SDK (TypeScript)** | [github.com/OOBE-PROTOCOL/synapse-sap-sdk](https://github.com/OOBE-PROTOCOL/synapse-sap-sdk) |
 | **SAP SDK package** | `@oobe-protocol-labs/synapse-sap-sdk` |
-| **Program ID** | `SAPTU7aUXk2AaAdktexae1iuxXpokxzNDBAYYhaVyQL` |
+| **Program ID** | `SAPpUhsWLJG1FfkGRcXagEDMrMsWGjbky7AyhGpFETZ` |
 
 This module provides a **thin integration bridge** (`SynapseAnchorSap`) that connects the Synapse Client SDK's infrastructure — endpoint resolution, network registry, HMR-safe singletons — with the SAP SDK's `SapClient` for on-chain agent operations.
 
@@ -45,7 +45,7 @@ This module provides a **thin integration bridge** (`SynapseAnchorSap`) that con
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          Solana Blockchain                              │
-│              SAP Program: SAPTU7aUXk2AaAdktexae1iuxXpokxzNDBAYYhaVyQL  │
+│              SAP Program: SAPpUhsWLJG1FfkGRcXagEDMrMsWGjbky7AyhGpFETZ  │
 └───────────────────┬─────────────────────────┬──────────────────────────┘
                     │                         │
      ┌──────────────┴──────────────┐   ┌──────┴──────────────────────────┐
@@ -443,7 +443,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 | Export | Description |
 |--------|-------------|
-| `SAP_PROGRAM_ID` | Canonical program ID: `SAPTU7aUXk2AaAdktexae1iuxXpokxzNDBAYYhaVyQL` |
+| `SAP_PROGRAM_ID` | Canonical program ID: `SAPpUhsWLJG1FfkGRcXagEDMrMsWGjbky7AyhGpFETZ` |
 | `SapDependencyError` | Thrown when a required peer dep is missing |
 
 ---

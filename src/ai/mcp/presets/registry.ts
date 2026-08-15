@@ -98,6 +98,54 @@ const RAW_PRESETS = [
     timeout: 15_000,
   },
 
+  // ── Orbis API Marketplace ────────────────────────────────────
+  {
+    id: 'orbis',
+    name: 'Orbis API Marketplace',
+    description:
+      'Search and call 12,000+ APIs (finance, AI, blockchain, data enrichment, and more) ' +
+      'on the Orbis marketplace. Agents pay per call in USDC on Base via x402 — ' +
+      'no account or API key required. Pass an optional x-orbis-key header for key-based auth.',
+    transport: 'sse',
+    url: 'https://orbisapi.com/api/mcp/sse',
+    toolPrefix: 'orbis_',
+    docsUrl: 'https://orbisapi.com',
+    timeout: 30_000,
+  },
+
+  // ── The Stall ────────────────────────────────────────────────
+  {
+    id: 'the-stall',
+    name: 'The Stall',
+    description:
+      '210 pay-per-call data tools (finance, crypto, DeFi, macro, OSINT, weather) via x402 on Base. ' +
+      'No API key or account required — agents pay per call in USDC.',
+    transport: 'sse',
+    url: 'https://the-stall.intuitek.ai/sse',
+    toolPrefix: 'stall_',
+    docsUrl: 'https://the-stall.intuitek.ai',
+    timeout: 30_000,
+  },
+
+  // ── Farebox ──────────────────────────────────────────────────
+  {
+    id: 'farebox',
+    name: 'Farebox',
+    description:
+      'Access 36+ frontier LLMs (GPT-4o, Claude, Gemini, Llama, DeepSeek, Mistral, and more) ' +
+      'through a single OpenAI-compatible gateway. Agents pay per token in USDC on Solana — ' +
+      'prepaid via API key, or fully accountless via x402 pay-per-call. ' +
+      'Exposes tools: farebox_list_models, farebox_chat, farebox_call_skill, farebox_get_balance, farebox_get_usage.',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', 'farebox-mcp'],
+    env: { FAREBOX_API_KEY: '${FAREBOX_API_KEY}' },
+    toolPrefix: 'farebox_',
+    docsUrl: 'https://farebox.fun',
+    npmPackage: 'farebox-mcp',
+    timeout: 30_000,
+  },
+
   /* ─────────────────────────────────────────────────────────────
    *  AceDataCloud — hosted MCP fleet (transport: 'sse')
    * ─────────────────────────────────────────────────────────────
@@ -274,6 +322,7 @@ const RAW_PRESETS = [
     docsUrl: 'https://docs.acedata.cloud/wan/overview',
     timeout: 30_000,
   },
+
   // ── EarnFi Human Execution (x402) ────────────────────────────
   {
     id: 'earnfi',
