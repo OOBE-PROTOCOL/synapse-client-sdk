@@ -231,6 +231,12 @@
       "import": "./dist/esm/ai/plugins/utilia/index.js",
       "require": "./dist/cjs/ai/plugins/utilia/index.js"
     },
+    "./ai/plugins/earnfi": {
+      "types": "./dist/esm/ai/plugins/earnfi/index.d.ts",
+      "import": "./dist/esm/ai/plugins/earnfi/index.js",
+      "require": "./dist/cjs/ai/plugins/earnfi/index.js"
+    },
+    },
     "./ai/mcp": {
       "types": "./dist/esm/ai/mcp/index.d.ts",
       "import": "./dist/esm/ai/mcp/index.js",
@@ -300,6 +306,7 @@
   "author": "Synapse Gateway | OOBE PROTOCOL LABS (https://oobeprotocol.ai)",
   "license": "MIT",
   "dependencies": {
+    "@earn-fi/agent-client": "^2.0.1",
     "@solana/kit": "^6.1.0",
     "eventemitter3": "^5.0.1",
     "ws": "^8.18.3"
@@ -321,14 +328,15 @@
     "zod": "^4.1.11"
   },
   "peerDependencies": {
+    "@coral-xyz/anchor": ">=0.30.0",
     "@langchain/core": ">=0.3.0 <0.4.0",
-    "typescript": ">=5.0.0",
-    "zod": ">=3.23.0 || >=4.0.0",
+    "@oobe-protocol-labs/synapse-sap-sdk": ">=0.1.0",
+    "@solana/spl-token": ">=0.4.0",
+    "@solana/web3.js": ">=1.90.0",
     "ioredis": ">=5.0.0",
     "pg": ">=8.0.0",
-    "@oobe-protocol-labs/synapse-sap-sdk": ">=0.1.0",
-    "@coral-xyz/anchor": ">=0.30.0",
-    "@solana/web3.js": ">=1.90.0"
+    "typescript": ">=5.0.0",
+    "zod": ">=3.23.0 || >=4.0.0"
   },
   "peerDependenciesMeta": {
     "zod": {
@@ -350,6 +358,9 @@
       "optional": true
     },
     "@solana/web3.js": {
+      "optional": true
+    },
+    "@solana/spl-token": {
       "optional": true
     }
   },
