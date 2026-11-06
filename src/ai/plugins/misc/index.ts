@@ -10,7 +10,7 @@
  * ```
  *
  * Protocols included:
- *  - **sns**          (3)  — .sol domain registration + resolution
+ *  - **sns**          (3)  — .sns resolution + optional registration (proxy-backed)
  *  - **alldomains**   (3)  — Multi-TLD domain resolution (.abc, .bonk, .poor, etc.)
  *  - **pyth**         (3)  — On-chain oracle price feeds
  *  - **coingecko**    (6)  — Market data, trending, gainers, OHLCV, pools
@@ -21,8 +21,8 @@
  *
  * @since 2.0.0
  */
-import type { SynapsePlugin, PluginContext } from '../types';
-import type { ProtocolMethod } from '../../tools/protocols/shared';
+import type { SynapsePlugin, PluginContext } from "../types";
+import type { ProtocolMethod } from "../../tools/protocols/shared";
 import {
   snsMethods,
   alldomainsMethods,
@@ -30,7 +30,7 @@ import {
   coingeckoMethods,
   gibworkMethods,
   sendArcadeMethods,
-} from './schemas';
+} from "./schemas";
 
 export {
   snsMethods,
@@ -40,15 +40,20 @@ export {
   gibworkMethods,
   sendArcadeMethods,
   allMiscMethods,
-} from './schemas';
+} from "./schemas";
 
 /* ═══════════════════════════════════════════════════════════════
  *  API Base URLs
  * ═══════════════════════════════════════════════════════════════ */
-const SNS_API        = 'https://sns-sdk-proxy.bonfida.workers.dev';
-const PYTH_API       = 'https://hermes.pyth.network';
-const COINGECKO_API  = 'https://pro-api.coingecko.com/api/v3';
-const GIBWORK_API    = 'https://api2.gib.work';
+const SNS_API = ""; // (dead proxy removed 2026-11: worker was taken offline by SNS)
+// Optional write path: the new official SNS REST proxy (self-hostable from
+// the sns-sdk monorepo `sdk-proxy/`). Set via env; reads stay local/on-chain.
+function snsProxyUrl(): string {
+  return process.env.SNS_PROXY_URL ?? "";
+}
+const PYTH_API = "https://hermes.pyth.network";
+const COINGECKO_API = "https://pro-api.coingecko.com/api/v3";
+const GIBWORK_API = "https://api2.gib.work";
 
 /* ═══════════════════════════════════════════════════════════════
  *  Misc Plugin
@@ -56,58 +61,66 @@ const GIBWORK_API    = 'https://api2.gib.work';
 
 export const MiscPlugin: SynapsePlugin = {
   meta: {
-    id: 'misc',
-    name: 'Misc Plugin',
+    id: "misc",
+    name: "Misc Plugin",
     description:
-      'Domain names, oracle feeds, market data, bounties, and games — ' +
-      'SNS, AllDomains, Pyth, CoinGecko, GibWork, Send Arcade',
-    version: '2.0.0',
-    tags: ['domains', 'oracle', 'market-data', 'bounties', 'games', 'sns', 'pyth'],
+      "Domain names, oracle feeds, market data, bounties, and games — " +
+      "SNS, AllDomains, Pyth, CoinGecko, GibWork, Send Arcade",
+    version: "2.0.0",
+    tags: [
+      "domains",
+      "oracle",
+      "market-data",
+      "bounties",
+      "games",
+      "sns",
+      "pyth",
+    ],
     mcpResources: [
-      'solana://domain/{name}',
-      'oracle://pyth/{feedId}',
-      'market://coingecko/{tokenId}',
+      "solana://domain/{name}",
+      "oracle://pyth/{feedId}",
+      "market://coingecko/{tokenId}",
     ],
   },
 
   protocols: [
     {
-      id: 'sns',
-      name: 'Solana Name Service',
+      id: "sns",
+      name: "Solana Name Service",
       methods: snsMethods,
       baseUrl: SNS_API,
       requiresClient: true,
     },
     {
-      id: 'alldomains',
-      name: 'AllDomains',
+      id: "alldomains",
+      name: "AllDomains",
       methods: alldomainsMethods,
       requiresClient: true,
     },
     {
-      id: 'pyth',
-      name: 'Pyth Oracle',
+      id: "pyth",
+      name: "Pyth Oracle",
       methods: pythMethods,
       baseUrl: PYTH_API,
       requiresClient: false,
     },
     {
-      id: 'coingecko',
-      name: 'CoinGecko',
+      id: "coingecko",
+      name: "CoinGecko",
       methods: coingeckoMethods,
       baseUrl: COINGECKO_API,
       requiresClient: false,
     },
     {
-      id: 'gibwork',
-      name: 'GibWork',
+      id: "gibwork",
+      name: "GibWork",
       methods: gibworkMethods,
       baseUrl: GIBWORK_API,
       requiresClient: true,
     },
     {
-      id: 'send-arcade',
-      name: 'Send Arcade',
+      id: "send-arcade",
+      name: "Send Arcade",
       methods: sendArcadeMethods,
       requiresClient: true,
     },
@@ -115,7 +128,8 @@ export const MiscPlugin: SynapsePlugin = {
 
   install(context: PluginContext) {
     const transport = context.client.transport;
-    const apiKeys = context.config?.apiKeys as Record<string, string> | undefined;
+    const apiKeys = context.config?.apiKeys as
+      Record<string, string> | undefined;
 
     return {
       executor: async (
@@ -124,20 +138,22 @@ export const MiscPlugin: SynapsePlugin = {
         ctx: PluginContext,
       ) => {
         switch (method.protocol) {
-          case 'sns':
+          case "sns":
             return executeSns(transport, method, input);
-          case 'alldomains':
+          case "alldomains":
             return executeAlldomains(transport, method, input);
-          case 'pyth':
+          case "pyth":
             return executePyth(method, input);
-          case 'coingecko':
+          case "coingecko":
             return executeCoinGecko(method, input, apiKeys?.coingecko);
-          case 'gibwork':
+          case "gibwork":
             return executeGibWork(method, input);
-          case 'send-arcade':
+          case "send-arcade":
             return executeSendArcade(transport, method, input);
           default:
-            throw new Error(`[MiscPlugin] Unknown protocol: ${method.protocol}`);
+            throw new Error(
+              `[MiscPlugin] Unknown protocol: ${method.protocol}`,
+            );
         }
       },
     };
@@ -148,57 +164,140 @@ export const MiscPlugin: SynapsePlugin = {
  *  Protocol Executors
  * ═══════════════════════════════════════════════════════════════ */
 
-// ── SNS — Solana Name Service ──────────────────────────────────
+// ── SNS — Solana Name Service (.sns, Stage 1) ──────────────────
+
+import {
+  checkSnsAvailability,
+  displaySnsDomain,
+  resolveSnsDomain,
+  type SnsRpcCaller,
+} from "./sns-local";
+
+const SNS_RECORD_LABELS = [
+  "SOL",
+  "txt",
+  "url",
+  "pic",
+  "twitter",
+  "github",
+  "discord",
+  "telegram",
+  "Email",
+] as const;
 
 async function executeSns(
-  transport: any,
+  transport: unknown,
   method: ProtocolMethod,
   input: Record<string, unknown>,
 ): Promise<unknown> {
+  void transport;
   switch (method.name) {
-    case 'resolveDomain': {
-      try {
-        const domain = (input.domain as string).replace(/\.sol$/, '');
-        const res = await fetch(`${SNS_API}/resolve/${domain}`);
-        if (!res.ok) {
-          return { owner: null, domainKey: '', error: `Domain not found: ${input.domain}` };
-        }
-        const data = await res.json();
+    case "resolveDomain": {
+      const domain = String(input.domain ?? "");
+      const rpc = transport as unknown as SnsRpcCaller;
+      const resolved = await resolveSnsDomain(rpc, domain);
+      if (!resolved) {
         return {
-          owner: (data as any)?.result ?? (data as any)?.s,
-          domainKey: '',
-          domain: `${domain}.sol`,
+          owner: null,
+          domainKey: "",
+          domain: displaySnsDomain(domain),
+          message: "Domain not found (or unregistered on the .sns namespace).",
         };
-      } catch (err) {
-        return { error: String(err), owner: null };
       }
+      const firstRecord = resolved.records["SOL"];
+      return {
+        owner: resolved.owner,
+        domainKey: resolved.domainKey,
+        domain: displaySnsDomain(domain),
+        data:
+          resolved.records["txt"] ??
+          (firstRecord && firstRecord !== resolved.owner
+            ? undefined
+            : undefined),
+      };
     }
 
-    case 'reverseLookup': {
-      try {
-        const res = await fetch(`${SNS_API}/favorite-domain/${input.wallet}`);
-        const fav = res.ok ? await res.json() : null;
-        const domainsRes = await fetch(`${SNS_API}/domains/${input.wallet}`);
-        const domains = domainsRes.ok ? ((await domainsRes.json()) as any)?.result ?? [] : [];
+    case "reverseLookup": {
+      const wallet = String(input.wallet ?? "");
+      const proxy = snsProxyUrl();
+      if (!proxy) {
         return {
-          domains: Array.isArray(domains) ? domains.map((d: any) => `${d}.sol`) : [],
-          primaryDomain: (fav as any)?.result ? `${(fav as any).result}.sol` : null,
+          domains: [],
+          primaryDomain: null,
+          message:
+            "wallet→domains lookup needs an indexer (or the official SNS REST proxy). " +
+            "Set SNS_PROXY_URL to the official sdk-proxy endpoint to enable it. " +
+            "Use sns resolveDomain for the per-name path instead.",
+        };
+      }
+      try {
+        const favRes = await fetch(`${proxy}/primary-domain/${wallet}`);
+        const domainsRes = await fetch(`${proxy}/domains/${wallet}`);
+        const fav = favRes.ok
+          ? ((await favRes.json()) as { result?: string })
+          : null;
+        const domainsList = domainsRes.ok
+          ? (((await domainsRes.json()) as { result?: string[] }).result ?? [])
+          : [];
+        return {
+          domains: domainsList.map((d) => displaySnsDomain(d)),
+          primaryDomain: fav?.result ? displaySnsDomain(fav.result) : null,
         };
       } catch (err) {
         return { error: String(err), domains: [], primaryDomain: null };
       }
     }
 
+    case "registerDomain": {
+      const proxy = snsProxyUrl();
+      if (!proxy) {
+        throw new Error(
+          "SNS registration requires SNS_PROXY_URL (the official SNS REST proxy, " +
+            "self-hostable from the sns-sdk monorepo sdk-proxy). Resolve flows work locally.",
+        );
+      }
+      const domain = displaySnsDomain(String(input.domain ?? ""));
+      const wallet = String(input.wallet ?? "");
+      const space = input.space ? String(input.space) : "600";
+      const res = await fetch(
+        `${proxy}/register?buyer=${encodeURIComponent(wallet)}&domain=${encodeURIComponent(domain)}&space=${space}&serialize=true`,
+      );
+      if (!res.ok) {
+        return {
+          error: `SNS proxy error: ${res.status}`,
+          status: "registration_failed",
+        };
+      }
+      const data = (await res.json()) as {
+        transaction?: string;
+        cost?: string | number;
+      };
+      return {
+        status: "instruction_ready",
+        protocol: "sns",
+        method: method.name,
+        domain,
+        tx: data.transaction ?? "",
+        registrationCost: data.cost !== undefined ? String(data.cost) : "",
+        message:
+          "Unsigned registration payload from the SNS proxy. Sign and submit with the wallet.",
+      };
+    }
+
     default:
       return {
-        status: 'instruction_ready',
-        protocol: 'sns',
+        status: "instruction_ready",
+        protocol: "sns",
         method: method.name,
         params: input,
         message: `SNS ${method.name} instruction prepared. Sign and submit.`,
       };
   }
 }
+
+// Display helper exposed for the plugin family; local readers stay internal.
+export { displaySnsDomain, toFullSnsName } from "./sns-local";
+export { SNS_RECORD_LABELS };
 
 // ── AllDomains ─────────────────────────────────────────────────
 
@@ -208,28 +307,30 @@ async function executeAlldomains(
   input: Record<string, unknown>,
 ): Promise<unknown> {
   switch (method.name) {
-    case 'resolveDomain': {
+    case "resolveDomain": {
       // AllDomains uses on-chain accounts — fall through to RPC lookup
       // For a production build, use the AllDomains SDK.
       return {
         domain: input.domain,
-        message: 'AllDomains resolution requires the AllDomains SDK. Use resolveDomain with SNS for .sol domains.',
+        message:
+          "AllDomains resolution requires the AllDomains SDK. Use resolveDomain with SNS for .sns domains.",
         owner: null,
       };
     }
 
-    case 'getOwnedDomains': {
+    case "getOwnedDomains": {
       return {
         wallet: input.wallet,
         domains: [],
-        message: 'Query AllDomains program accounts for owned domains. Requires AllDomains SDK for decoding.',
+        message:
+          "Query AllDomains program accounts for owned domains. Requires AllDomains SDK for decoding.",
       };
     }
 
     default:
       return {
-        status: 'instruction_ready',
-        protocol: 'alldomains',
+        status: "instruction_ready",
+        protocol: "alldomains",
         method: method.name,
         params: input,
         message: `AllDomains ${method.name} instruction prepared. Sign and submit.`,
@@ -244,7 +345,7 @@ async function executePyth(
   input: Record<string, unknown>,
 ): Promise<unknown> {
   switch (method.name) {
-    case 'getPrice': {
+    case "getPrice": {
       try {
         const feedId = input.priceId as string;
         // Try Hermes API first (supports both hex IDs and symbols)
@@ -257,7 +358,7 @@ async function executePyth(
         const data = await res.json();
         const parsed = (data as any)?.parsed?.[0]?.price;
         if (!parsed) {
-          return { error: 'Price feed not found', id: feedId };
+          return { error: "Price feed not found", id: feedId };
         }
         return {
           id: feedId,
@@ -265,14 +366,14 @@ async function executePyth(
           confidence: Number(parsed.conf) * Math.pow(10, parsed.expo),
           expo: parsed.expo,
           publishTime: parsed.publish_time,
-          status: 'trading',
+          status: "trading",
         };
       } catch (err) {
         return { error: String(err), id: input.priceId };
       }
     }
 
-    case 'listPriceFeeds': {
+    case "listPriceFeeds": {
       try {
         const res = await fetch(`${PYTH_API}/v2/price_feeds`);
         if (!res.ok) {
@@ -281,22 +382,23 @@ async function executePyth(
         let feeds = (await res.json()) as any[];
         if (input.query) {
           const q = (input.query as string).toLowerCase();
-          feeds = feeds.filter((f: any) =>
-            (f.attributes?.symbol ?? '').toLowerCase().includes(q) ||
-            (f.attributes?.description ?? '').toLowerCase().includes(q),
+          feeds = feeds.filter(
+            (f: any) =>
+              (f.attributes?.symbol ?? "").toLowerCase().includes(q) ||
+              (f.attributes?.description ?? "").toLowerCase().includes(q),
           );
         }
         if (input.assetType) {
           feeds = feeds.filter(
-            (f: any) => (f.attributes?.asset_type ?? '') === input.assetType,
+            (f: any) => (f.attributes?.asset_type ?? "") === input.assetType,
           );
         }
         return {
           feeds: feeds.slice(0, 50).map((f: any) => ({
             id: f.id,
-            symbol: f.attributes?.symbol ?? '',
-            assetType: f.attributes?.asset_type ?? '',
-            description: f.attributes?.description ?? '',
+            symbol: f.attributes?.symbol ?? "",
+            assetType: f.attributes?.asset_type ?? "",
+            description: f.attributes?.description ?? "",
           })),
         };
       } catch (err) {
@@ -304,9 +406,10 @@ async function executePyth(
       }
     }
 
-    case 'getPriceHistory': {
+    case "getPriceHistory": {
       return {
-        message: 'Pyth historical data requires the Pyth Benchmarks API. Use getPrice for latest.',
+        message:
+          "Pyth historical data requires the Pyth Benchmarks API. Use getPrice for latest.",
         prices: [],
         priceId: input.priceId,
       };
@@ -324,17 +427,17 @@ async function executeCoinGecko(
   input: Record<string, unknown>,
   apiKey?: string,
 ): Promise<unknown> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: "application/json" };
   if (apiKey) {
-    headers['x-cg-pro-api-key'] = apiKey;
+    headers["x-cg-pro-api-key"] = apiKey;
   }
-  const baseUrl = apiKey ? COINGECKO_API : 'https://api.coingecko.com/api/v3';
+  const baseUrl = apiKey ? COINGECKO_API : "https://api.coingecko.com/api/v3";
 
   try {
     switch (method.name) {
-      case 'getTokenPrice': {
+      case "getTokenPrice": {
         const id = input.tokenId as string;
-        const vs = (input.vsCurrency as string) ?? 'usd';
+        const vs = (input.vsCurrency as string) ?? "usd";
         const res = await fetch(
           `${baseUrl}/coins/markets?vs_currency=${vs}&ids=${id}&sparkline=false`,
           { headers },
@@ -358,7 +461,7 @@ async function executeCoinGecko(
         };
       }
 
-      case 'getTrending': {
+      case "getTrending": {
         const res = await fetch(`${baseUrl}/search/trending`, { headers });
         if (!res.ok) return { error: `CoinGecko API error: ${res.status}` };
         const data = await res.json();
@@ -379,8 +482,8 @@ async function executeCoinGecko(
         };
       }
 
-      case 'getTopGainersLosers': {
-        const vs = (input.vsCurrency as string) ?? 'usd';
+      case "getTopGainersLosers": {
+        const vs = (input.vsCurrency as string) ?? "usd";
         const res = await fetch(
           `${baseUrl}/coins/markets?vs_currency=${vs}&order=price_change_percentage_24h_desc&per_page=50&page=1`,
           { headers },
@@ -389,7 +492,8 @@ async function executeCoinGecko(
         const coins = (await res.json()) as any[];
         const sorted = [...coins].sort(
           (a, b) =>
-            (b.price_change_percentage_24h ?? 0) - (a.price_change_percentage_24h ?? 0),
+            (b.price_change_percentage_24h ?? 0) -
+            (a.price_change_percentage_24h ?? 0),
         );
         const format = (c: any) => ({
           id: c.id,
@@ -404,8 +508,10 @@ async function executeCoinGecko(
         };
       }
 
-      case 'getTokenInfo': {
-        const res = await fetch(`${baseUrl}/coins/${input.tokenId}`, { headers });
+      case "getTokenInfo": {
+        const res = await fetch(`${baseUrl}/coins/${input.tokenId}`, {
+          headers,
+        });
         if (!res.ok) return { error: `CoinGecko API error: ${res.status}` };
         const c = (await res.json()) as any;
         return {
@@ -436,12 +542,12 @@ async function executeCoinGecko(
         };
       }
 
-      case 'getPoolsByToken': {
-        const network = (input.network as string) ?? 'solana';
+      case "getPoolsByToken": {
+        const network = (input.network as string) ?? "solana";
         const addr = input.tokenAddress as string;
         const onChainUrl = apiKey
-          ? 'https://pro-api.coingecko.com/api/v3'
-          : 'https://api.coingecko.com/api/v3';
+          ? "https://pro-api.coingecko.com/api/v3"
+          : "https://api.coingecko.com/api/v3";
         const res = await fetch(
           `${onChainUrl}/onchain/networks/${network}/tokens/${addr}/pools`,
           { headers },
@@ -453,26 +559,32 @@ async function executeCoinGecko(
             poolAddress: p.attributes?.address,
             dex: p.relationships?.dex?.data?.id,
             baseToken: {
-              symbol: p.attributes?.base_token_symbol ?? '',
-              address: '',
+              symbol: p.attributes?.base_token_symbol ?? "",
+              address: "",
             },
             quoteToken: {
-              symbol: p.attributes?.quote_token_symbol ?? '',
-              address: '',
+              symbol: p.attributes?.quote_token_symbol ?? "",
+              address: "",
             },
             priceUsd: p.attributes?.base_token_price_usd,
-            volume24h: p.attributes?.volume_usd?.h24 ? Number(p.attributes.volume_usd.h24) : undefined,
-            liquidity: p.attributes?.reserve_in_usd ? Number(p.attributes.reserve_in_usd) : undefined,
-            fdv: p.attributes?.fdv_usd ? Number(p.attributes.fdv_usd) : undefined,
+            volume24h: p.attributes?.volume_usd?.h24
+              ? Number(p.attributes.volume_usd.h24)
+              : undefined,
+            liquidity: p.attributes?.reserve_in_usd
+              ? Number(p.attributes.reserve_in_usd)
+              : undefined,
+            fdv: p.attributes?.fdv_usd
+              ? Number(p.attributes.fdv_usd)
+              : undefined,
           })),
           totalPools: (data as any)?.data?.length ?? 0,
         };
       }
 
-      case 'getOHLCV': {
+      case "getOHLCV": {
         const id = input.tokenId as string;
-        const vs = (input.vsCurrency as string) ?? 'usd';
-        const days = (input.days as string) ?? '7';
+        const vs = (input.vsCurrency as string) ?? "usd";
+        const days = (input.days as string) ?? "7";
         const res = await fetch(
           `${baseUrl}/coins/${id}/market_chart?vs_currency=${vs}&days=${days}`,
           { headers },
@@ -501,14 +613,15 @@ async function executeGibWork(
   input: Record<string, unknown>,
 ): Promise<unknown> {
   switch (method.name) {
-    case 'listBounties': {
+    case "listBounties": {
       try {
-        const status = (input.status as string) ?? 'open';
+        const status = (input.status as string) ?? "open";
         const limit = (input.limit as number) ?? 20;
         const res = await fetch(
           `${GIBWORK_API}/v1/bounties?status=${status}&limit=${limit}`,
         );
-        if (!res.ok) return { error: `GibWork API error: ${res.status}`, bounties: [] };
+        if (!res.ok)
+          return { error: `GibWork API error: ${res.status}`, bounties: [] };
         return await res.json();
       } catch (err) {
         return { error: String(err), bounties: [] };
@@ -517,8 +630,8 @@ async function executeGibWork(
 
     default:
       return {
-        status: 'instruction_ready',
-        protocol: 'gibwork',
+        status: "instruction_ready",
+        protocol: "gibwork",
         method: method.name,
         params: input,
         message: `GibWork ${method.name} instruction prepared. Sign and submit.`,
@@ -535,8 +648,8 @@ async function executeSendArcade(
 ): Promise<unknown> {
   // Send Arcade ops mostly involve on-chain transactions
   return {
-    status: 'instruction_ready',
-    protocol: 'send-arcade',
+    status: "instruction_ready",
+    protocol: "send-arcade",
     method: method.name,
     params: input,
     message: `Send Arcade ${method.name} instruction prepared. Sign and submit.`,
