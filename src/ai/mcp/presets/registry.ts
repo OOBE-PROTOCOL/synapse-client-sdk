@@ -305,6 +305,35 @@ const RAW_PRESETS = [
     npmPackage: '@openvecta/mcp',
     timeout: 30_000,
   },
+
+  // ── Orbis API Marketplace ────────────────────────────────────
+  {
+    id: 'orbis',
+    name: 'Orbis API Marketplace',
+    description:
+      'Search and call 12,000+ APIs (finance, AI, blockchain, data enrichment, and more) ' +
+      'on the Orbis marketplace. Agents pay per call in USDC on Base via x402 — ' +
+      'no account or API key required. Pass an optional x-orbis-key header for key-based auth.',
+    transport: 'sse',
+    url: 'https://orbisapi.com/api/mcp/sse',
+    toolPrefix: 'orbis_',
+    docsUrl: 'https://orbisapi.com',
+    timeout: 30_000,
+  },
+
+  // ── The Stall ────────────────────────────────────────────────
+  {
+    id: 'the-stall',
+    name: 'The Stall',
+    description:
+      '210 pay-per-call data tools (finance, crypto, DeFi, macro, OSINT, weather) via x402 on Base. ' +
+      'No API key or account required — agents pay per call in USDC.',
+    transport: 'sse',
+    url: 'https://the-stall.intuitek.ai/sse',
+    toolPrefix: 'stall_',
+    docsUrl: 'https://the-stall.intuitek.ai',
+    timeout: 30_000,
+  },
 ] as const satisfies McpPreset[];
 
 /* ═══════════════════════════════════════════════════════════════
