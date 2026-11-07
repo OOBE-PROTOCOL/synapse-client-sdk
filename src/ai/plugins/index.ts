@@ -5,7 +5,7 @@
  * ```ts
  * import {
  *   SynapseAgentKit,
- *   TokenPlugin, NFTPlugin, DeFiPlugin, MiscPlugin, BlinksPlugin,
+ *   TokenPlugin, NFTPlugin, DeFiPlugin, MiscPlugin, BlinksPlugin, UtiliaPlugin,
  *   createEarnFiPlugin,
  * } from '@oobe-protocol-labs/synapse-client-sdk/ai/plugins';
  *
@@ -32,6 +32,12 @@ export { DeFiPlugin } from './defi';
 export { MiscPlugin } from './misc';
 export { BlinksPlugin } from './blinks';
 export { createEarnFiPlugin } from './earnfi';
+export { UtiliaPlugin } from './utilia';
+
+export type {
+  UtiliaPaymentQuote,
+  UtiliaPluginConfig,
+} from './utilia';
 
 // ── Types ─────────────────────────────────────────────────────
 export type {

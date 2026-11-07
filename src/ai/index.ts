@@ -350,6 +350,7 @@ export {
   DeFiPlugin,
   MiscPlugin,
   BlinksPlugin,
+  UtiliaPlugin,
 
   // Types
   type SynapsePlugin,
@@ -362,6 +363,8 @@ export {
   type AgentKitConfig,
   type McpToolDescriptor,
   type McpResourceDescriptor,
+  type UtiliaPaymentQuote,
+  type UtiliaPluginConfig,
 } from './plugins';
 
 // ── MCP (Model Context Protocol) ──────────────────────────────
