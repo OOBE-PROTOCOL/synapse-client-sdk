@@ -33,6 +33,7 @@ export { MiscPlugin } from './misc';
 export { BlinksPlugin } from './blinks';
 export { createEarnFiPlugin } from './earnfi';
 export { UtiliaPlugin } from './utilia';
+export { createEarnFiPlugin } from './earnfi';
 
 export type {
   UtiliaPaymentQuote,
